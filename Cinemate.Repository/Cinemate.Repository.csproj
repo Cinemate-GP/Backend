@@ -10,4 +10,13 @@
     <ProjectReference Include="..\Cinemate.Core\Cinemate.Core.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Data\Configuration\" />
+    <Folder Include="Data\Contexts\" />
+    <Folder Include="Data\DataSeed\" />
+    <Folder Include="Data\Migrations\" />
+    <Folder Include="Identity\Context\" />
+    <Folder Include="Identity\Migrations\" />
+  </ItemGroup>
+
 </Project>
