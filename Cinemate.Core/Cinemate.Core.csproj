@@ -8,7 +8,6 @@
 
   <ItemGroup>
     <Folder Include="Helper\" />
-    <Folder Include="Service Contract\" />
     <Folder Include="Repository Contract\" />
   </ItemGroup>
 

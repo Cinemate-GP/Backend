@@ -33,7 +33,7 @@ namespace Cinemate.Repository.Data.Configuration
 				SecurityStamp = DefaultUsers.AdminSecurityStamp,
 				ConcurrencyStamp = DefaultUsers.AdminConcurrencyStamp,
 				EmailConfirmed = true,
-				PasswordHash = "AQAAAAEAACcQAAAAEDmT4hXWp7uBMyMz8o7Xf7XTHmLlYoP2ImYx3hXfZQ=="
+				PasswordHash = "AQAAAAIAAYagAAAAEAR2V+bcDJAlzUiuTRqKkLj/Uv4ibKCWikvvMF1g75/iOokLhV1l9SedoJOqspT0mA=="
 			});
 		}
 	}

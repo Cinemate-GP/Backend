@@ -7,14 +7,18 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="Identity\**" />
+    <EmbeddedResource Remove="Identity\**" />
+    <None Remove="Identity\**" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\Cinemate.Core\Cinemate.Core.csproj" />
   </ItemGroup>
 
   <ItemGroup>
     <Folder Include="Data\DataSeed\" />
     <Folder Include="Data\Migrations\" />
-    <Folder Include="Identity\Context\" />
-    <Folder Include="Identity\Migrations\" />
   </ItemGroup>
 
   <ItemGroup>

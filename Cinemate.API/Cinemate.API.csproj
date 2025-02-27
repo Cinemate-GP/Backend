@@ -19,8 +19,4 @@
     <ProjectReference Include="..\Cinemate.Service\Cinemate.Service.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="Controllers\" />
-  </ItemGroup>
-
 </Project>
