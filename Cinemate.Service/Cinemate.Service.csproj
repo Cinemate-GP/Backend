@@ -10,8 +10,4 @@
     <ProjectReference Include="..\Cinemate.Repository\Cinemate.Repository.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="Services\" />
-  </ItemGroup>
-
 </Project>
