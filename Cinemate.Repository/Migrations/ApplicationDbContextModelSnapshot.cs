@@ -175,7 +175,7 @@ namespace Cinemate.Repository.Migrations
                             LockoutEnabled = false,
                             NormalizedEmail = "ADMIN@CINEMATE-SYSTEM.COM",
                             NormalizedUserName = "ADMIN@CINEMATE-SYSTEM.COM",
-                            PasswordHash = "AQAAAAEAACcQAAAAEDmT4hXWp7uBMyMz8o7Xf7XTHmLlYoP2ImYx3hXfZQ==",
+                            PasswordHash = "AQAAAAIAAYagAAAAEAR2V+bcDJAlzUiuTRqKkLj/Uv4ibKCWikvvMF1g75/iOokLhV1l9SedoJOqspT0mA==",
                             PhoneNumberConfirmed = false,
                             SecurityStamp = "55BF92C9EF0249CDA210D85D1A851BC9",
                             TwoFactorEnabled = false,

@@ -3,10 +3,12 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
+#pragma warning disable CA1814 // Prefer jagged arrays over multidimensional
+
 namespace Cinemate.Repository.Migrations
 {
     /// <inheritdoc />
-    public partial class AddIdentityTableAndRefreshTokenTable : Migration
+    public partial class _20250226203152_AddIdentityTableAndRefreshTokenTableAndDefaultRoles : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -187,9 +189,18 @@ namespace Cinemate.Repository.Migrations
                 });
 
             migrationBuilder.InsertData(
+                table: "AspNetRoles",
+                columns: new[] { "Id", "ConcurrencyStamp", "IsDefault", "IsDeleted", "Name", "NormalizedName" },
+                values: new object[,]
+                {
+                    { "45781365-655c-42b4-aae7-897e4ea7f834", "86b1eaf4-1099-4170-86d5-b30162221da9", true, false, "Member", "MEMBER" },
+                    { "e1940bc8-a54c-494d-9286-a585466c73f0", "f51e5a91-bced-49c2-8b86-c2e170c0846c", false, false, "Admin", "ADMIN" }
+                });
+
+            migrationBuilder.InsertData(
                 table: "AspNetUsers",
                 columns: new[] { "Id", "AccessFailedCount", "BirthDay", "ConcurrencyStamp", "Email", "EmailConfirmed", "FirstName", "Gender", "IsDisabled", "LastName", "LockoutEnabled", "LockoutEnd", "NormalizedEmail", "NormalizedUserName", "PasswordHash", "PhoneNumber", "PhoneNumberConfirmed", "SecurityStamp", "TwoFactorEnabled", "UserName" },
-                values: new object[] { "0a20e01f-e5ea-4ce0-afbc-ac24742c2732", 0, new DateOnly(2000, 1, 1), "f02edb7f-0447-42be-be44-c2de5a15e320", "admin@cinemate-system.com", true, "Cinemate System", "", false, "Admin", false, null, "ADMIN@CINEMATE-SYSTEM.COM", "ADMIN@CINEMATE-SYSTEM.COM", "AQAAAAEAACcQAAAAEDmT4hXWp7uBMyMz8o7Xf7XTHmLlYoP2ImYx3hXfZQ==", null, false, "55BF92C9EF0249CDA210D85D1A851BC9", false, "admin@cinemate-system.com" });
+                values: new object[] { "0a20e01f-e5ea-4ce0-afbc-ac24742c2732", 0, new DateOnly(2000, 1, 1), "f02edb7f-0447-42be-be44-c2de5a15e320", "admin@cinemate-system.com", true, "Cinemate System", "", false, "Admin", false, null, "ADMIN@CINEMATE-SYSTEM.COM", "ADMIN@CINEMATE-SYSTEM.COM", "AQAAAAIAAYagAAAAEAR2V+bcDJAlzUiuTRqKkLj/Uv4ibKCWikvvMF1g75/iOokLhV1l9SedoJOqspT0mA==", null, false, "55BF92C9EF0249CDA210D85D1A851BC9", false, "admin@cinemate-system.com" });
 
             migrationBuilder.CreateIndex(
                 name: "IX_AspNetRoleClaims_RoleId",
