@@ -15,8 +15,8 @@ namespace Cinemate.Core
 		{
 			services.AddMapsterConfig();
 			services.AddFluentValidationConfig();
-            services.Configure<MailSetting>(configuration.GetSection(nameof(MailSetting)));
-            return services;
+			services.Configure<MailSetting>(configuration.GetSection(MailSetting.SectionName));
+			return services;
 		}
 		private static IServiceCollection AddMapsterConfig(this IServiceCollection services)
 		{
