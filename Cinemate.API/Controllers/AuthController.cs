@@ -35,5 +35,23 @@ namespace Cinemate.API.Controllers
 			var response = await _authService.RevokeRefreshTokenAsync(request.Token, request.RefreshToken, cancellationToken);
 			return response.IsSuccess ? Ok() : response.ToProblem();
 		}
-	}
+        [HttpPost("register")]
+        public async Task<IActionResult> Register([FromBody] RegisterRequest request, CancellationToken cancellationToken)
+        {
+            var result = await _authService.RegisterAsync(request, cancellationToken);
+            return result.IsSuccess ? Ok() : result.ToProblem();
+        }
+        [HttpPost("confirm-email")]
+        public async Task<IActionResult> ConfirmEmail([FromBody] ConfirmEmailRequest request)
+        {
+            var result = await _authService.ConfirmEmailAsync(request);
+            return result.IsSuccess ? Ok() : result.ToProblem();
+        }
+
+
+
+
+
+
+    }
 }

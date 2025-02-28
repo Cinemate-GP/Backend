@@ -11,6 +11,11 @@ namespace Cinemate.Core.Mapping
 	{
 		public void Register(TypeAdapterConfig config)
 		{
+
+
+
+
+
 		}
 	}
 }

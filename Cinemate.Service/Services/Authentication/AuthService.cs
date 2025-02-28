@@ -1,12 +1,20 @@
-﻿using Cinemate.Core.Authentication_Contract;
+﻿using Cinemate.Core.Abstractions.Consts;
+using Cinemate.Core.Authentication_Contract;
 using Cinemate.Core.Contracts.Authentication;
 using Cinemate.Core.Entities;
+using Cinemate.Core.Helpers;
 using Cinemate.Core.Service_Contract;
 using Cinemate.Repository.Abstractions;
+using Hangfire;
+using Mapster;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
-
+using Microsoft.AspNetCore.Identity.UI.Services;
+using Microsoft.AspNetCore.WebUtilities;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using System.Security.Cryptography;
+using System.Text;
 using static Cinemate.Repository.Errors.Authentication.AuthenticationError;
 
 namespace Cinemate.Service.Services.Authentication
@@ -16,16 +24,26 @@ namespace Cinemate.Service.Services.Authentication
 		private readonly UserManager<ApplicationUser> _userManager;
 		private readonly SignInManager<ApplicationUser> _signInManager;
 		private readonly IJwtProvider _jwtProvider;
-		private readonly int _refreshTokenExpiryDays = 7;
+        private readonly IEmailSender _emailSender;
+        private readonly ILogger<AuthService> _logger;
+        private readonly IHttpContextAccessor _httpContextAccessor;
+        private readonly int _refreshTokenExpiryDays = 7;
 		public AuthService(UserManager<ApplicationUser> userManager,
 			   IJwtProvider jwtProvider,
 			   SignInManager<ApplicationUser> signInManager,
+               ILogger<AuthService> logger,
+               IEmailSender emailSender
+               ,
+
 			  IHttpContextAccessor httpContextAccessor)
 		{
 			_userManager = userManager;
 			_jwtProvider = jwtProvider;
 			_signInManager = signInManager;
-		}
+			_logger = logger;
+			_httpContextAccessor = httpContextAccessor;
+			_emailSender = emailSender;
+        }
 		public async Task<Result<AuthResponse>> GetTokenAsync(string email, string password, CancellationToken cancellationToken = default)
 		{
 
@@ -125,5 +143,74 @@ namespace Cinemate.Service.Services.Authentication
 			var userRoles = await _userManager.GetRolesAsync(user);
 			return userRoles.FirstOrDefault()!;
 		}
-	}
+        public async Task<Result> RegisterAsync(RegisterRequest request, CancellationToken cancellationToken = default)
+        {
+            var emailIsExist = await _userManager.Users.AnyAsync(x => x.Email == request.Email, cancellationToken);
+            if (emailIsExist)
+                return Result.Failure(UserErrors.DublicatedEmail);
+            var user = request.Adapt<ApplicationUser>();
+            user.UserName = request.Email;
+
+            var result = await _userManager.CreateAsync(user, request.Password);
+            if (result.Succeeded)
+            {
+                var code = await _userManager.GenerateEmailConfirmationTokenAsync(user);
+                code = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(code));
+                _logger.LogInformation("Confirmation Code {code}", code);
+
+                await SendConfirmationEmailAsync(user, code);
+
+                return Result.Success();
+            }
+            var error = result.Errors.First();
+            return Result.Failure(new Error(error.Code, error.Description, StatusCodes.Status400BadRequest));
+        }
+        private async Task SendConfirmationEmailAsync(ApplicationUser user, string code)
+        {
+            var origin = _httpContextAccessor.HttpContext?.Request.Headers.Origin;
+
+            var emailBody = EmailBodyBuilder.GenerateEmailBody("EmailConfirmation",
+                new Dictionary<string, string>
+                {
+                    {"{{name}}",user.FirstName },
+                    { "{{action_url}}",$"{origin}/auth/emailConfirmation?userId={user.Id}&code={code}" }
+                }
+            );
+            BackgroundJob.Enqueue(() => _emailSender.SendEmailAsync(user.Email!, "✅ CineMate: Confirm your email", emailBody));
+
+            await Task.CompletedTask;
+        }
+        public async Task<Result> ConfirmEmailAsync(ConfirmEmailRequest request)
+        {
+            var user = await _userManager.FindByIdAsync(request.UserId);
+            if (user is null)
+                return Result.Failure(UserErrors.InvalidCode);
+
+            if (user.EmailConfirmed)
+                return Result.Failure(UserErrors.DuplicatedConfirmation);
+
+            var code = request.Code;
+            try
+            {
+                code = Encoding.UTF8.GetString(WebEncoders.Base64UrlDecode(code));
+            }
+            catch (FormatException)
+            {
+                return Result.Failure(UserErrors.InvalidCode);
+            }
+            var result = await _userManager.ConfirmEmailAsync(user, code);
+            if (result.Succeeded)
+            {
+                await _userManager.AddToRoleAsync(user, DefaultRoles.Member);
+                return Result.Success();
+            }
+            var error = result.Errors.First();
+            return Result.Failure(new Error(error.Code, error.Description, StatusCodes.Status400BadRequest));
+        }
+
+
+
+
+
+    }
 }
