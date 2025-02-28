@@ -23,7 +23,8 @@ namespace Cinemate.API
 				)
 			);
 			services.AddSwaggerServices();
-			return services;
+            services.AddHttpContextAccessor();
+            return services;
 		}
 		private static IServiceCollection AddSwaggerServices(this IServiceCollection services)
 		{

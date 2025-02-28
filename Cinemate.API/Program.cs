@@ -1,6 +1,7 @@
 using Cinemate.Core;
 using Cinemate.Repository;
 using Cinemate.Service;
+using Hangfire;
 
 namespace Cinemate.API
 {
@@ -23,9 +24,9 @@ namespace Cinemate.API
                 app.UseSwagger();
                 app.UseSwaggerUI();
             }
-
+    
             app.UseHttpsRedirection();
-
+            app.UseHangfireDashboard("/jobs");
             app.UseAuthorization();
 
 
