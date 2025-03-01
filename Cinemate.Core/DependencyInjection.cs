@@ -5,6 +5,7 @@ using MapsterMapper;
 using System.Reflection;
 using FluentValidation.AspNetCore;
 using FluentValidation;
+using Cinemate.Core.Helpers;
 
 namespace Cinemate.Core
 {
@@ -14,6 +15,7 @@ namespace Cinemate.Core
 		{
 			services.AddMapsterConfig();
 			services.AddFluentValidationConfig();
+			services.Configure<MailSetting>(configuration.GetSection(MailSetting.SectionName));
 			return services;
 		}
 		private static IServiceCollection AddMapsterConfig(this IServiceCollection services)
@@ -22,9 +24,9 @@ namespace Cinemate.Core
 			mappingConfig.Scan(Assembly.GetExecutingAssembly());
 
 			services.AddSingleton<IMapper>(new Mapper(mappingConfig));
-
-			return services;
-		}
+           
+            return services;
+        }
 		private static IServiceCollection AddFluentValidationConfig(this IServiceCollection services)
 		{
 			services

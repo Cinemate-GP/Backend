@@ -7,6 +7,13 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Hangfire.AspNetCore" Version="1.8.18" />
+    <PackageReference Include="Hangfire.Core" Version="1.8.18" />
+    <PackageReference Include="Hangfire.Dashboard.Basic.Authentication" Version="7.0.1" />
+    <PackageReference Include="Hangfire.SqlServer" Version="1.8.18" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\Cinemate.Repository\Cinemate.Repository.csproj" />
   </ItemGroup>
 
