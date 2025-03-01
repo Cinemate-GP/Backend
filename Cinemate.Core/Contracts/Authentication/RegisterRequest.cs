@@ -14,6 +14,5 @@ namespace Cinemate.Core.Contracts.Authentication
         string LastName,
         string Gender,
         DateOnly BirthDay
-
-        );
+    );
 }

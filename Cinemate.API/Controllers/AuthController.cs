@@ -47,11 +47,17 @@ namespace Cinemate.API.Controllers
             var result = await _authService.ConfirmEmailAsync(request);
             return result.IsSuccess ? Ok() : result.ToProblem();
         }
-
-
-
-
-
-
-    }
+		[HttpPost("forget-password")]
+		public async Task<IActionResult> ForgetPassword([FromBody] ForgetPasswrodRequest request)
+		{
+			var response = await _authService.SendResetPasswordCodeAsync(request.Email);
+			return response.IsSuccess ? Ok() : response.ToProblem();
+		}
+		[HttpPost("reset-password")]
+		public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordRequest request)
+		{
+			var response = await _authService.ResetPasswordAsync(request);
+			return response.IsSuccess ? Ok() : response.ToProblem();
+		}
+	}
 }
