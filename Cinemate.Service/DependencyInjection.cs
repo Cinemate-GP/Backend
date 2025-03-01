@@ -12,5 +12,21 @@ namespace Cinemate.Service
 			services.AddScoped<IAuthService, AuthService>();
 			return services;
 		}
-	}
+        private static IServiceCollection AddBackgroundJobsConfig(this IServiceCollection services, IConfiguration configuration)
+        {
+            services.AddHangfire(config => config
+                    .SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
+                    .UseSimpleAssemblyNameTypeSerializer()
+                    .UseRecommendedSerializerSettings()
+                    .UseSqlServerStorage(configuration.GetConnectionS, string("HangfireConnection")));
+
+            services.AddHangfireServer();
+
+            return services;
+        }
+
+
+
+
+    }
 }
