@@ -47,7 +47,20 @@ namespace Cinemate.API.Controllers
             var result = await _authService.ConfirmEmailAsync(request);
             return result.IsSuccess ? Ok() : result.ToProblem();
         }
-		[HttpPost("forget-password")]
+        [HttpPost("resend-confirm-email")]
+        public async Task<IActionResult> ResendConfirmEmail([FromBody] ResendConfirmationEmailRequest request)
+        {
+            var result = await _authService.ResendConfirmEmailAsync(request);
+            return result.IsSuccess ? Ok() : result.ToProblem();
+        }
+
+
+
+
+
+
+
+        [HttpPost("forget-password")]
 		public async Task<IActionResult> ForgetPassword([FromBody] ForgetPasswrodRequest request)
 		{
 			var response = await _authService.SendResetPasswordCodeAsync(request.Email);
