@@ -164,7 +164,7 @@ namespace Cinemate.Repository.Migrations
                             Email = "admin@cinemate-system.com",
                             EmailConfirmed = true,
                             FullName = "Cinemate System",
-                            Gender = "",
+                            Gender = "Male",
                             IsDisabled = false,
                             LockoutEnabled = false,
                             NormalizedEmail = "ADMIN@CINEMATE-SYSTEM.COM",

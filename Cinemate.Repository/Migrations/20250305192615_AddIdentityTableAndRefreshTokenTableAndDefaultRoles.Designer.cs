@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Cinemate.Repository.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20250305191849_AddIdentityTableAndRefreshTokenTableAndDefaultRoles")]
+    [Migration("20250305192615_AddIdentityTableAndRefreshTokenTableAndDefaultRoles")]
     partial class AddIdentityTableAndRefreshTokenTableAndDefaultRoles
     {
         /// <inheritdoc />
