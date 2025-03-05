@@ -22,7 +22,8 @@ namespace Cinemate.Repository.Data.Configuration
 			builder.HasData(new ApplicationUser
 			{
 				Id = DefaultUsers.AdminId,
-				FullName = "Cinemate System",
+				FullName = DefaultUsers.AdminFullName,
+				Gender = DefaultUsers.AdminGender,
 				UserName = DefaultUsers.AdminEmail,
 				BirthDay = new DateOnly(2000, 1, 1),
 				NormalizedUserName = DefaultUsers.AdminEmail.ToUpper(),
