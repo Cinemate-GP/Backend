@@ -10,8 +10,7 @@ namespace Cinemate.Core.Contracts.Authentication
     (
         string Email,
         string Password,
-        string FirstName,
-        string LastName,
+        string FullName,
         string Gender,
         DateOnly BirthDay
     );

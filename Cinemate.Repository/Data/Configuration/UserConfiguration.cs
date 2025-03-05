@@ -16,15 +16,13 @@ namespace Cinemate.Repository.Data.Configuration
 				.WithOwner()
 				.HasForeignKey("UserId");
 
-			builder.Property(x => x.FirstName).HasMaxLength(100);
-			builder.Property(x => x.LastName).HasMaxLength(100);
+			builder.Property(x => x.FullName).HasMaxLength(100);
 
 			//Default Data
 			builder.HasData(new ApplicationUser
 			{
 				Id = DefaultUsers.AdminId,
-				FirstName = "Cinemate System",
-				LastName = "Admin",
+				FullName = "Cinemate System",
 				UserName = DefaultUsers.AdminEmail,
 				BirthDay = new DateOnly(2000, 1, 1),
 				NormalizedUserName = DefaultUsers.AdminEmail.ToUpper(),

@@ -28,8 +28,7 @@ namespace Cinemate.Repository.Authentication
 			{
 				new(JwtRegisteredClaimNames.Sub,user.Id),
 				new(JwtRegisteredClaimNames.Email,user.Email!),
-				new(JwtRegisteredClaimNames.GivenName,user.FirstName),
-				new(JwtRegisteredClaimNames.FamilyName,user.LastName),
+				new(JwtRegisteredClaimNames.GivenName,user.FullName),
 				new(JwtRegisteredClaimNames.Jti,Guid.NewGuid().ToString()),
 				new(nameof(role),JsonSerializer.Serialize(role),JsonClaimValueTypes.JsonArray)
 			};
