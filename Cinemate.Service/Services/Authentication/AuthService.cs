@@ -249,7 +249,25 @@ namespace Cinemate.Service.Services.Authentication
 
 			await Task.CompletedTask;
 		}
-		private async Task SendResetPasswordEmailAsync(ApplicationUser user, string code)
+        public async Task<Result> ResendConfirmEmailAsync(ResendConfirmationEmailRequest request)
+        {
+            var user = await _userManager.FindByEmailAsync(request.Email);
+            if (user is null)
+                return Result.Success();
+
+            if (user.EmailConfirmed)
+                return Result.Failure(UserErrors.DuplicatedConfirmation);
+
+            var code = await _userManager.GenerateEmailConfirmationTokenAsync(user);
+            code = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(code));
+            _logger.LogInformation("Confirmation Code {code}", code);
+
+            await SendConfirmationEmailAsync(user, code);
+
+            return Result.Success();
+        }
+
+        private async Task SendResetPasswordEmailAsync(ApplicationUser user, string code)
 		{
 			var origin = _httpContextAccessor.HttpContext?.Request.Headers.Origin;
 
