@@ -9,9 +9,8 @@ namespace Cinemate.Core.Contracts.Authentication
 	public record AuthResponse(
 		 string Id,
 		 string? Email,
-		 string? FirstName,
-		 string? LastName,
-		 string Token,
+		 string? FullName,
+         string Token,
 		 int ExpiresIn,
 		 string RefreshToken,
 		 DateTime RefreshTokenExpiration

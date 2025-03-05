@@ -68,7 +68,7 @@ namespace Cinemate.Service.Services.Authentication
 
 				await _userManager.UpdateAsync(user);
 
-				var response = new AuthResponse(user.Id, user.Email, user.FirstName, user.LastName, token, expiresIn, refreshToken, refreshTokenExpiration);
+				var response = new AuthResponse(user.Id, user.Email, user.FullName, token, expiresIn, refreshToken, refreshTokenExpiration);
 
 				return Result.Success(response);
 			}
@@ -111,7 +111,7 @@ namespace Cinemate.Service.Services.Authentication
 
 			await _userManager.UpdateAsync(user);
 
-			var response = new AuthResponse(user.Id, user.Email, user.FirstName, user.LastName, newToken, expiresIn, newRefreshToken, refreshTokenExpiration);
+			var response = new AuthResponse(user.Id, user.Email, user.FullName, newToken, expiresIn, newRefreshToken, refreshTokenExpiration);
 
 			return Result.Success(response);
 		}
@@ -241,7 +241,7 @@ namespace Cinemate.Service.Services.Authentication
 			var emailBody = EmailBodyBuilder.GenerateEmailBody("EmailConfirmation",
 				new Dictionary<string, string>
 				{
-					{"{{name}}",user.FirstName },
+					{"{{name}}",user.FullName },
 					{ "{{action_url}}",$"{origin}/auth/emailConfirmation?userId={user.Id}&code={code}" }
 				}
 			);
@@ -274,7 +274,7 @@ namespace Cinemate.Service.Services.Authentication
 			var emailBody = EmailBodyBuilder.GenerateEmailBody("ForgetPassword",
 				new Dictionary<string, string>
 				{
-					{"{{name}}",user.FirstName },
+					{"{{name}}",user.FullName },
 					{ "{{action_url}}",$"{origin}/auth/forgetPassword?email={user.Email}&code={code}" }
 				}
 			);

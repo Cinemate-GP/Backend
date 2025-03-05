@@ -97,7 +97,7 @@ namespace Cinemate.Repository.Migrations
                     b.Property<bool>("EmailConfirmed")
                         .HasColumnType("bit");
 
-                    b.Property<string>("FirstName")
+                    b.Property<string>("FullName")
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
@@ -108,11 +108,6 @@ namespace Cinemate.Repository.Migrations
 
                     b.Property<bool>("IsDisabled")
                         .HasColumnType("bit");
-
-                    b.Property<string>("LastName")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
 
                     b.Property<bool>("LockoutEnabled")
                         .HasColumnType("bit");
@@ -168,10 +163,9 @@ namespace Cinemate.Repository.Migrations
                             ConcurrencyStamp = "f02edb7f-0447-42be-be44-c2de5a15e320",
                             Email = "admin@cinemate-system.com",
                             EmailConfirmed = true,
-                            FirstName = "Cinemate System",
+                            FullName = "Cinemate System",
                             Gender = "",
                             IsDisabled = false,
-                            LastName = "Admin",
                             LockoutEnabled = false,
                             NormalizedEmail = "ADMIN@CINEMATE-SYSTEM.COM",
                             NormalizedUserName = "ADMIN@CINEMATE-SYSTEM.COM",
