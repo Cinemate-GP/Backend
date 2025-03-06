@@ -36,8 +36,7 @@ namespace Cinemate.API
 		            	Pass=app.Configuration.GetValue<string>("HangfireSettings:Password")
 		            }
 	            ],
-				DashboardTitle = "SurveyBasket Dashboard",
-				//IsReadOnlyFunc = (DashboardContext context) => true
+				DashboardTitle = "Cinemate Dashboard",
 			});
 			app.UseHangfireDashboard("/jobs");
             app.UseAuthorization();
