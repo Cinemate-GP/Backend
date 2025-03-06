@@ -2,6 +2,7 @@ using Cinemate.Core;
 using Cinemate.Repository;
 using Cinemate.Service;
 using Hangfire;
+using HangfireBasicAuthenticationFilter;
 
 namespace Cinemate.API
 {
@@ -26,7 +27,19 @@ namespace Cinemate.API
             }
     
             app.UseHttpsRedirection();
-            app.UseHangfireDashboard("/jobs");
+			app.UseHangfireDashboard("/jobs", new DashboardOptions
+			{
+				Authorization =
+	            [
+		            new HangfireCustomBasicAuthenticationFilter{
+		            	User=app.Configuration.GetValue<string>("HangfireSettings:Username"),
+		            	Pass=app.Configuration.GetValue<string>("HangfireSettings:Password")
+		            }
+	            ],
+				DashboardTitle = "SurveyBasket Dashboard",
+				//IsReadOnlyFunc = (DashboardContext context) => true
+			});
+			app.UseHangfireDashboard("/jobs");
             app.UseAuthorization();
 
 
