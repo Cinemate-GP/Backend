@@ -19,7 +19,7 @@ namespace Cinemate.Core.Contracts.Authentication
             RuleFor(x => x.Password)
                 .NotEmpty()
                 .Matches(RegexPatterns.Password)
-                .WithMessage("Password should be at least 8 characters and should contain a lowercase, uppercase, number, and a special character.");
+                .WithMessage("Password should be at least 6 characters and should contain a lowercase, uppercase, number, and a special character.");
 
             RuleFor(x => x.FullName)
                 .NotEmpty()
