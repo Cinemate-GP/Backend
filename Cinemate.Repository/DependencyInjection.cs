@@ -57,7 +57,7 @@ namespace Cinemate.Repository
 				});
 			services.Configure<IdentityOptions>(options =>
 			{
-				options.Password.RequiredLength = 8;
+				options.Password.RequiredLength = 6;
 				options.SignIn.RequireConfirmedEmail = true;
 				options.User.RequireUniqueEmail = true;
 				options.User.AllowedUserNameCharacters =

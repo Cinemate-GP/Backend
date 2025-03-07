@@ -22,7 +22,7 @@ namespace Cinemate.Core.Contracts.Authentication
 			RuleFor(x => x.NewPassword)
 				.NotEmpty()
 				.Matches(RegexPatterns.Password)
-				.WithMessage("Passwrod should be at least 8 digits and should contains lower case, nonalphanumeric and uppercase");
+				.WithMessage("Passwrod should be at least 6 digits and should contains lower case, nonalphanumeric and uppercase");
 
 		}
 	}

@@ -48,9 +48,10 @@ namespace Cinemate.Service.Services.Authentication
 		{
 
 			if (await _userManager.FindByEmailAsync(email) is not { } user)
-				return Result.Failure<AuthResponse>(UserErrors.InvalidCredentails);
+				return Result.Failure<AuthResponse>(UserErrors.UserEmailNotFound);
 
 			var result = await _signInManager.PasswordSignInAsync(user, password, false, false);
+
 
 			if (result.Succeeded)
 			{
@@ -141,8 +142,9 @@ namespace Cinemate.Service.Services.Authentication
                 return Result.Failure(UserErrors.DublicatedEmail);
             var user = request.Adapt<ApplicationUser>();
             user.UserName = request.Email;
-
-            var result = await _userManager.CreateAsync(user, request.Password);
+			//remove it
+			//user.EmailConfirmed= true;
+			var result = await _userManager.CreateAsync(user, request.Password);
             if (result.Succeeded)
             {
                 var code = await _userManager.GenerateEmailConfirmationTokenAsync(user);
@@ -188,7 +190,7 @@ namespace Cinemate.Service.Services.Authentication
 
 			var user = await _userManager.FindByEmailAsync(email);
 			if (user is null)
-				return Result.Success();
+				return Result.Failure(UserErrors.UserEmailNotFound);
 
 			if (!user.EmailConfirmed)
 				return Result.Failure(UserErrors.EmailNotConfirmed);
@@ -205,8 +207,12 @@ namespace Cinemate.Service.Services.Authentication
 		public async Task<Result> ResetPasswordAsync(ResetPasswordRequest request)
 		{
 			var user = await _userManager.FindByEmailAsync(request.Email);
-			if (user is null || !user.EmailConfirmed)
-				return Result.Failure(UserErrors.InvalidCode);
+
+			if (user is null)
+				return Result.Failure(UserErrors.UserEmailNotFound);
+
+			if(!user.EmailConfirmed)
+				return Result.Failure(UserErrors.EmailNotConfirmed);
 
 			IdentityResult result;
 			try
@@ -242,7 +248,7 @@ namespace Cinemate.Service.Services.Authentication
 				new Dictionary<string, string>
 				{
 					{"{{name}}",user.FullName },
-					{ "{{action_url}}",$"{origin}/auth/emailConfirmation?userId={user.Id}&code={code}" }
+					{ "{{action_url}}",$"https://movie-recommendation-system-sand.vercel.app/test?userId={user.Id}&code={code}" }
 				}
 			);
 			BackgroundJob.Enqueue(() => _emailSender.SendEmailAsync(user.Email!, "✅ CineMate: Confirm your email", emailBody));
@@ -275,7 +281,7 @@ namespace Cinemate.Service.Services.Authentication
 				new Dictionary<string, string>
 				{
 					{"{{name}}",user.FullName },
-					{ "{{action_url}}",$"{origin}/auth/forgetPassword?email={user.Email}&code={code}" }
+					{ "{{action_url}}",$"https://movie-recommendation-system-sand.vercel.app/auth/reset-password?email={user.Email}&code={code}" }
 				}
 			);
 			BackgroundJob.Enqueue(() => _emailSender.SendEmailAsync(user.Email!, "✅ CineMate: Reset your password", emailBody));
