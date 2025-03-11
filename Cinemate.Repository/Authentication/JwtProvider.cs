@@ -1,5 +1,5 @@
 ﻿using Cinemate.Core.Authentication_Contract;
-using Cinemate.Core.Entities;
+using Cinemate.Core.Entities.Auth;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using System;

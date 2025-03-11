@@ -1,5 +1,5 @@
 ﻿using Cinemate.Core.Authentication_Contract;
-using Cinemate.Core.Entities;
+using Cinemate.Core.Entities.Auth;
 using Cinemate.Repository.Authentication;
 using Cinemate.Repository.Data.Contexts;
 using Cinemate.Repository.Errors;

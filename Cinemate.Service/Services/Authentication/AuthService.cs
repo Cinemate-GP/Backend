@@ -2,6 +2,7 @@
 using Cinemate.Core.Authentication_Contract;
 using Cinemate.Core.Contracts.Authentication;
 using Cinemate.Core.Entities;
+using Cinemate.Core.Entities.Auth;
 using Cinemate.Core.Helpers;
 using Cinemate.Core.Service_Contract;
 using Cinemate.Repository.Abstractions;

@@ -1,4 +1,5 @@
 using Cinemate.Core;
+using Cinemate.Core.Entities.Auth;
 using Cinemate.Repository;
 using Cinemate.Service;
 using Hangfire;
@@ -45,6 +46,8 @@ namespace Cinemate.API
             app.MapControllers();
 
             app.Run();
+
+           
         }
     }
 }

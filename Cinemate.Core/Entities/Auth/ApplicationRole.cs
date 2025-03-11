@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Cinemate.Core.Entities
+namespace Cinemate.Core.Entities.Auth
 {
 	public class ApplicationRole : IdentityRole
 	{
