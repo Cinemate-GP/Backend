@@ -1,4 +1,5 @@
-﻿using Cinemate.Core.Entities;
+﻿using Cinemate.Core.Entities.Auth;
+using Cinemate.Core.Entities;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
@@ -14,7 +15,20 @@ namespace Cinemate.Repository.Data.Contexts
 		{
 			_httpContextAccessor = httpContextAccessor;
 		}
-		protected override void OnModelCreating(ModelBuilder modelBuilder)
+		public DbSet<Cast> Casts { get; set; }
+		public DbSet<Genre> Genres { get; set; }
+		public DbSet<Movie> Movies { get; set; }
+		public DbSet<UserCastFollow> UserCastFollows { get; set; }
+		public DbSet<UserFollow> UserFollows { get; set; }
+		public DbSet<UserLikeMovie> UserLikeMovies { get; set; }
+		public DbSet<UserRateMovie> UserRateMovies { get; set; }
+		public DbSet<UserWatchedMovie> UserWatchedMovies { get; set; }
+		public DbSet<UserReviewMovie> UserReviewMovies { get; set; }
+		public DbSet<UserMovieWatchList> UserMovieWatchList { get; set; }
+
+		
+
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
 		{
 			modelBuilder.ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly());
 			base.OnModelCreating(modelBuilder);

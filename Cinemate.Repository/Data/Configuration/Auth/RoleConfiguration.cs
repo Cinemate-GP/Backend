@@ -1,5 +1,5 @@
 ﻿using Cinemate.Core.Abstractions.Consts;
-using Cinemate.Core.Entities;
+using Cinemate.Core.Entities.Auth;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using System;
@@ -8,7 +8,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Cinemate.Repository.Data.Configuration
+namespace Cinemate.Repository.Data.Configuration.Auth
 {
     public class RoleConfiguration : IEntityTypeConfiguration<ApplicationRole>
 	{

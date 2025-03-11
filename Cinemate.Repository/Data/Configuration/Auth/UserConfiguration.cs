@@ -1,10 +1,10 @@
 ﻿using Cinemate.Core.Abstractions.Consts;
-using Cinemate.Core.Entities;
+using Cinemate.Core.Entities.Auth;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
-namespace Cinemate.Repository.Data.Configuration
+namespace Cinemate.Repository.Data.Configuration.Auth
 {
 	public class UserConfiguration : IEntityTypeConfiguration<ApplicationUser>
 	{
@@ -34,6 +34,8 @@ namespace Cinemate.Repository.Data.Configuration
 				EmailConfirmed = true,
 				PasswordHash = "AQAAAAIAAYagAAAAEAR2V+bcDJAlzUiuTRqKkLj/Uv4ibKCWikvvMF1g75/iOokLhV1l9SedoJOqspT0mA=="
 			});
+
+
 		}
 	}
 }

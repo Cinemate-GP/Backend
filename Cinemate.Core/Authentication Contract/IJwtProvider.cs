@@ -1,4 +1,4 @@
-﻿using Cinemate.Core.Entities;
+﻿using Cinemate.Core.Entities.Auth;
 using System;
 using System.Collections.Generic;
 using System.Linq;
