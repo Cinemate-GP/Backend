@@ -1,5 +1,5 @@
 ﻿using Cinemate.Core.Abstractions.Consts;
-using Cinemate.Core.Entities;
+using Cinemate.Core.Entities.Auth;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using System;

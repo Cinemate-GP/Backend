@@ -2,6 +2,7 @@
 using Cinemate.Core.Authentication_Contract;
 using Cinemate.Core.Contracts.Authentication;
 using Cinemate.Core.Entities;
+using Cinemate.Core.Entities.Auth;
 using Cinemate.Core.Helpers;
 using Cinemate.Core.Service_Contract;
 using Cinemate.Repository.Abstractions;
@@ -19,7 +20,7 @@ using static Cinemate.Repository.Errors.Authentication.AuthenticationError;
 
 namespace Cinemate.Service.Services.Authentication
 {
-	public class AuthService : IAuthService
+    public class AuthService : IAuthService
 	{
 		private readonly UserManager<ApplicationUser> _userManager;
 		private readonly SignInManager<ApplicationUser> _signInManager;

@@ -1,12 +1,12 @@
 ﻿using Cinemate.Core.Abstractions.Consts;
-using Cinemate.Core.Entities;
+using Cinemate.Core.Entities.Auth;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace Cinemate.Repository.Data.Configuration
 {
-	public class UserConfiguration : IEntityTypeConfiguration<ApplicationUser>
+    public class UserConfiguration : IEntityTypeConfiguration<ApplicationUser>
 	{
 		public void Configure(EntityTypeBuilder<ApplicationUser> builder)
 		{

@@ -1,5 +1,5 @@
 ﻿using Cinemate.Core.Authentication_Contract;
-using Cinemate.Core.Entities;
+using Cinemate.Core.Entities.Auth;
 using Cinemate.Repository.Authentication;
 using Cinemate.Repository.Data.Contexts;
 using Cinemate.Repository.Errors;
@@ -13,7 +13,7 @@ using System.Text;
 
 namespace Cinemate.Repository
 {
-	public static class DependencyInjection
+    public static class DependencyInjection
 	{
 		public static IServiceCollection AddRepositoryDependencyInjection(this IServiceCollection services, IConfiguration configuration)
 		{

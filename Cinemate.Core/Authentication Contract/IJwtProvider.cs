@@ -1,4 +1,4 @@
-﻿using Cinemate.Core.Entities;
+﻿using Cinemate.Core.Entities.Auth;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace Cinemate.Core.Authentication_Contract
 {
-	public interface IJwtProvider
+    public interface IJwtProvider
 	{
 		(string token, int expireTime) GenerateToken(ApplicationUser user, string role);
 		string? ValidateToken(string token);
