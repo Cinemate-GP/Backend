@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace Cinemate.Core.Authentication_Contract
 {
-	public interface IJwtProvider
+    public interface IJwtProvider
 	{
 		(string token, int expireTime) GenerateToken(ApplicationUser user, string role);
 		string? ValidateToken(string token);

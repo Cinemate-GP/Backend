@@ -10,6 +10,7 @@ namespace Cinemate.Core.Entities
 {
     public class UserCastFollow
     {
+
         public string UserId { get; set; } = string.Empty;
         public int CastId { get; set; }
         public DateTime FollowDate { get; set; } = DateTime.UtcNow;

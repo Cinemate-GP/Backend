@@ -20,7 +20,7 @@ using static Cinemate.Repository.Errors.Authentication.AuthenticationError;
 
 namespace Cinemate.Service.Services.Authentication
 {
-	public class AuthService : IAuthService
+    public class AuthService : IAuthService
 	{
 		private readonly UserManager<ApplicationUser> _userManager;
 		private readonly SignInManager<ApplicationUser> _signInManager;

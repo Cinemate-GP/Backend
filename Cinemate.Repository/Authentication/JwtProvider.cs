@@ -13,7 +13,7 @@ using System.Threading.Tasks;
 
 namespace Cinemate.Repository.Authentication
 {
-	public class JwtProvider : IJwtProvider
+    public class JwtProvider : IJwtProvider
 	{
 		private readonly JwtOptions _jwtOptions;
 

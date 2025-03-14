@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace Cinemate.Repository.Data.Configuration.Auth
 {
-	public class UserConfiguration : IEntityTypeConfiguration<ApplicationUser>
+    public class UserConfiguration : IEntityTypeConfiguration<ApplicationUser>
 	{
 		public void Configure(EntityTypeBuilder<ApplicationUser> builder)
 		{
