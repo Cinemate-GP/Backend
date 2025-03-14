@@ -8,11 +8,8 @@ namespace Cinemate.Core.Contracts.Authentication
 {
     public record ResendConfirmationEmailRequest
     (
-             string Email
-
-
-
-        );
+        string Email
+    );
 
     
 }

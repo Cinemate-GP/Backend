@@ -8,7 +8,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Cinemate.Repository.Data.Configuration
+namespace Cinemate.Repository.Data.Configuration.Auth
 {
     public class RoleConfiguration : IEntityTypeConfiguration<ApplicationRole>
 	{

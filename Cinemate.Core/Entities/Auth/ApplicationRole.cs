@@ -7,9 +7,9 @@ using System.Threading.Tasks;
 
 namespace Cinemate.Core.Entities.Auth
 {
-    public class ApplicationRole : IdentityRole
-    {
-        public bool IsDefault { get; set; }
-        public bool IsDeleted { get; set; }
-    }
+	public class ApplicationRole : IdentityRole
+	{
+		public bool IsDefault { get; set; }
+		public bool IsDeleted { get; set; }
+	}
 }
