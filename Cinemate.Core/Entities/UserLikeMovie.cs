@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace Cinemate.Core.Entities
 {
-    [PrimaryKey(nameof(UserId), nameof(MovieId))]
+    //[PrimaryKey(nameof(UserId), nameof(MovieId))]
     public class UserLikeMovie
     {
         public string UserId { get; set; } = string.Empty;

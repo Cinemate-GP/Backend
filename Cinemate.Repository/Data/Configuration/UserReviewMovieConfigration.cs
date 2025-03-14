@@ -25,7 +25,7 @@ namespace Cinemate.Repository.Data.Configuration
                 .HasForeignKey(urm => urm.UserId);
 
             builder.HasOne(urm => urm.Movie)
-                .WithMany(m => m.userReviews)
+                .WithMany(m => m.UserReviews)
                 .HasForeignKey(urm => urm.MovieId);
 
             builder.Property(urm => urm.ReviewBody).HasMaxLength(512);

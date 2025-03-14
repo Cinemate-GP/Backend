@@ -21,7 +21,7 @@ namespace Cinemate.Repository.Data.Configuration
                 .HasForeignKey(urm => urm.UserId);
 
             builder.HasOne(urm => urm.Movie)
-                .WithMany(m => m.userRates)
+                .WithMany(m => m.UserRates)
                 .HasForeignKey(urm => urm.MovieId);
 
             builder.Property(urm => urm.Stars)

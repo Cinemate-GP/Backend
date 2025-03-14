@@ -20,7 +20,7 @@ namespace Cinemate.Repository.Data.Configuration
                 .HasForeignKey(ulm => ulm.UserId);
 
             builder.HasOne(ulm => ulm.Movie)
-                .WithMany(m => m.userLikes)
+                .WithMany(m => m.UserLikes)
                 .HasForeignKey(ulm => ulm.MovieId);
 
             builder.Property(ulm => ulm.LikedOn)

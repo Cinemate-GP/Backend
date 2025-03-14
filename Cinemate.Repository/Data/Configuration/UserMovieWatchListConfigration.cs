@@ -20,7 +20,7 @@ namespace Cinemate.Repository.Data.Configuration
                 .HasForeignKey(umwl => umwl.UserId);
 
             builder.HasOne(umwl => umwl.Movie)
-                .WithMany(m => m.userWatchLists)
+                .WithMany(m => m.UserWatchLists)
                 .HasForeignKey(umwl => umwl.MovieId);
 
             builder.Property(umwl => umwl.AddedOn)

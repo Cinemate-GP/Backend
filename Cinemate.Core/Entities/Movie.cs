@@ -12,37 +12,37 @@ namespace Cinemate.Core.Entities
         public int TMDBId { get; set; }
         public int IMDBId { get; set; }
 
-        public string? title { get; set; }
+        public string? Title { get; set; }
 
-        public string? overview { get; set; }
+        public string? Overview { get; set; }
 
-        public string? poster_path { get; set; }
+        public string? Poster_path { get; set; }
 
-        public string? trailer_path { get; set; }
+        public string? Trailer_path { get; set; }
 
-        public int? runtime { get; set; }
+        public int? Runtime { get; set; }
 
-        public double? popularity { get; set; }
+        public double? Popularity { get; set; }
 
-        public double? budget { get; set; }
+        public double? Budget { get; set; }
 
-        public double? revenue { get; set; }
+        public double? Revenue { get; set; }
 
-        public DateOnly? release_date { get; set; }
+        public DateOnly? Release_date { get; set; }
 
-        public bool? adult { get; set; }
+        public bool? Adult { get; set; }
 
         public ICollection<Genre> Genres { get; set; } = new HashSet<Genre>();
         public ICollection<Cast> Casts { get; set; } = new HashSet<Cast>();
 
-        public ICollection<UserReviewMovie> userReviews { get; set; } = new HashSet<UserReviewMovie>();
+        public ICollection<UserReviewMovie> UserReviews { get; set; } = new HashSet<UserReviewMovie>();
     
-        public ICollection<UserRateMovie> userRates { get; set; } = new HashSet<UserRateMovie>();
+        public ICollection<UserRateMovie> UserRates { get; set; } = new HashSet<UserRateMovie>();
 
-        public ICollection<UserMovieWatchList> userWatchLists { get; set; } = new HashSet<UserMovieWatchList>();
+        public ICollection<UserMovieWatchList> UserWatchLists { get; set; } = new HashSet<UserMovieWatchList>();
 
-        public ICollection<UserLikeMovie> userLikes { get; set; } = new HashSet<UserLikeMovie>();
+        public ICollection<UserLikeMovie> UserLikes { get; set; } = new HashSet<UserLikeMovie>();
 
-        public ICollection<UserWatchedMovie> userWatched { get; set; } = new HashSet<UserWatchedMovie>();
+        public ICollection<UserWatchedMovie> UserWatched { get; set; } = new HashSet<UserWatchedMovie>();
     }
 }

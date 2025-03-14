@@ -1,8 +1,10 @@
 ﻿using Cinemate.Core.Authentication_Contract;
 using Cinemate.Core.Entities.Auth;
+using Cinemate.Core.Repository_Contract;
 using Cinemate.Repository.Authentication;
 using Cinemate.Repository.Data.Contexts;
 using Cinemate.Repository.Errors;
+using Cinemate.Repository.Repositories;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -19,8 +21,11 @@ namespace Cinemate.Repository
 		{
 			services.AddExceptionHandler<GlobalExceptionHandler>();
 			services.AddProblemDetails();
+            services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
+            services.AddScoped(typeof(IUnitOfWork), typeof(UnitOfWork));
 
-			var connectionString = configuration.GetConnectionString("DefaultConnection") ?? throw new InvalidOperationException("Connection String DefaultConnection not found.");
+
+            var connectionString = configuration.GetConnectionString("DefaultConnection") ?? throw new InvalidOperationException("Connection String DefaultConnection not found.");
 			services.AddDbContext<ApplicationDbContext>(options => options.UseSqlServer(connectionString));
 			services.AddAuthConfig(configuration);
 			return services;
