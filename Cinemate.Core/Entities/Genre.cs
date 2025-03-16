@@ -10,8 +10,7 @@ namespace Cinemate.Core.Entities
     {
         public int Id { get; set; }
         public string? Name { get; set; }
-
-        public ICollection<Movie> Movies { get; set; } = new HashSet<Movie>();
+        public ICollection<MovieGenre> MovieGenres { get; set; } = new HashSet<MovieGenre>();
 
     }
 }
