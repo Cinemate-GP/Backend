@@ -1,6 +1,7 @@
 ﻿using Cinemate.Core.Helpers;
 using Cinemate.Core.Service_Contract;
 using Cinemate.Service.Services.Authentication;
+using Cinemate.Service.Services.Movies;
 using Hangfire;
 using Microsoft.AspNetCore.Identity.UI.Services;
 using Microsoft.Extensions.Configuration;
@@ -14,6 +15,7 @@ namespace Cinemate.Service
 		{
 			services.AddScoped<IAuthService, AuthService>();
 			services.AddScoped<IEmailSender, EmailService>();
+			services.AddScoped<IMovieService, MovieService>();
             services.AddBackgroundJobsConfig(configuration);
             return services;
 		}

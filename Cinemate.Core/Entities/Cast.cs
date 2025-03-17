@@ -10,16 +10,12 @@ namespace Cinemate.Core.Entities
     {
         public int Id { get; set; }
         public string? Name { get; set; } 
-
         public int? Gender { get; set; }
         public string? ProfilePath { get; set; }
-
-        public double? popularity { get; set; }
-
-        public string? knownForDepartment { get; set; }
-
-        public ICollection<Movie> Movies { get; set; } = new HashSet<Movie>();
-
+		public string? Character { get; set; }
+		public double? Popularity { get; set; }
+        public string? KnownForDepartment { get; set; }
         public ICollection<UserCastFollow> FollowedByUsers { get; set; } = new HashSet<UserCastFollow>();
-    }
+		public ICollection<CastMovie> CastMovies { get; set; } = new HashSet<CastMovie>();
+	}
 }

@@ -25,6 +25,8 @@ namespace Cinemate.Repository.Data.Contexts
 		public DbSet<UserWatchedMovie> UserWatchedMovies { get; set; }
 		public DbSet<UserReviewMovie> UserReviewMovies { get; set; }
 		public DbSet<UserMovieWatchList> UserMovieWatchList { get; set; }
+		public DbSet<CastMovie> CastMovie { get; set; }
+		public DbSet<MovieGenre> MovieGenres { get; set; }
 
 		
 
