@@ -1,6 +1,8 @@
 using Cinemate.Core;
 using Cinemate.Core.Entities.Auth;
 using Cinemate.Repository;
+using Cinemate.Repository.Data;
+using Cinemate.Repository.Data.Contexts;
 using Cinemate.Service;
 using Hangfire;
 using HangfireBasicAuthenticationFilter;
@@ -9,7 +11,7 @@ namespace Cinemate.API
 {
     public class Program
     {
-        public static void Main(string[] args)
+        public static async Task Main(string[] args)
         {
             var builder = WebApplication.CreateBuilder(args);
 
@@ -20,8 +22,15 @@ namespace Cinemate.API
 
 			var app = builder.Build();
 
-            // Configure the HTTP request pipeline.
-            if (app.Environment.IsDevelopment())
+            using var scope = app.Services.CreateAsyncScope();
+            var services = scope.ServiceProvider;
+            var context = services.GetRequiredService<ApplicationDbContext>();
+
+            await ApplicationContextSeed.SeedAsync(context);
+             
+
+			// Configure the HTTP request pipeline.
+			if (app.Environment.IsDevelopment())
             {
                 app.UseSwagger();
                 app.UseSwaggerUI();
