@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Cinemate.Core.Contracts.Genres;
 
 namespace Cinemate.Core.Contracts.Movies
 {
@@ -17,6 +18,7 @@ namespace Cinemate.Core.Contracts.Movies
 		int? Runtime,
 		DateOnly? Release_date,
 		string? Trailer_path,
-		IEnumerable<ActorMovieResponse> Actors
+		IEnumerable<ActorMovieResponse> Actors,
+		IEnumerable<GenresDetails> GenresDetails
 	);
 }
