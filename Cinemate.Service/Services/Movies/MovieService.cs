@@ -13,6 +13,7 @@ using MapsterMapper;
 using Cinemate.Repository.Data.Contexts;
 using Microsoft.EntityFrameworkCore;
 using Cinemate.Core.Contracts.Actors;
+using Cinemate.Core.Contracts.Genres;
 
 namespace Cinemate.Service.Services.Movies
 {
@@ -32,7 +33,7 @@ namespace Cinemate.Service.Services.Movies
 		{
 			var movieRepository = _unitOfWork.Repository<Movie>();
 			var allMovies = await movieRepository.GetAllAsync();
-			var topTenMovies = allMovies
+			var response = allMovies
 				.Where(m => m.Popularity != null)
 				.OrderByDescending(m => m.Popularity)
 				.Take(10)
@@ -41,16 +42,17 @@ namespace Cinemate.Service.Services.Movies
 					m.TMDBId,
 					m.Title,
 					m.Poster_path
-				))
-				.ToList();
+				)).ToList();
 
-			return topTenMovies;
+			return response;
 		}
 		public async Task<Result<MovieDetailsResponse>> GetMovieDetailsAsync(int tmdbid, CancellationToken cancellationToken = default)
 		{
 			var movie = await _context.Movies
 				.Include(m => m.CastMovies)
 				.ThenInclude(cm => cm.Cast)
+				.Include(m => m.MovieGenres)
+				.ThenInclude(mg => mg.Genre)
 				.FirstOrDefaultAsync(m => m.TMDBId == tmdbid, cancellationToken);
 
 			if (movie is null)
@@ -63,10 +65,15 @@ namespace Cinemate.Service.Services.Movies
 					cm.Cast.ProfilePath,
 					cm.Cast.KnownForDepartment,
 					cm.Cast.Character
-				))
-				.ToList();
+				)).ToList();
 
-			var result = new MovieDetailsResponse(
+			var genres = movie.MovieGenres
+				.Select(mg => new GenresDetails(
+					mg.Genre.Id,
+					mg.Genre.Name ?? string.Empty
+				)).ToList();
+
+			var response = new MovieDetailsResponse(
 				movie.MovieId,
 				movie.TMDBId,
 				movie.Title,
@@ -75,32 +82,43 @@ namespace Cinemate.Service.Services.Movies
 				movie.Runtime,
 				movie.Release_date,
 				movie.Trailer_path,
-				actors
+				actors,  
+				genres
 			);
-			return Result.Success(result);
+
+			return Result.Success(response);
 		}
 		public async Task<IEnumerable<MovieDetailsRandomResponse>> GetMovieRandomAsync(CancellationToken cancellationToken = default)
 		{
 			var movieRepository = _unitOfWork.Repository<Movie>();
 			var allMovies = await movieRepository.GetAllAsync();
-			var randomMovies = allMovies
-				.OrderBy(m => Guid.NewGuid())
-				.Take(3)
-				.Select(m => new MovieDetailsRandomResponse(
-					m.MovieId,
-					m.TMDBId,
-					m.Title,
-					m.Overview,
-					m.Poster_path,
-					m.Runtime,
-					m.Release_date,
-					m.Trailer_path
-				))
-				.ToList();
-			return randomMovies;
+			var movieIds = allMovies
+					.OrderBy(_ => Guid.NewGuid())
+					.Take(3)
+					.Select(m => m.MovieId)
+					.ToList();
+
+			var randomMovies = await _context.Movies
+					.Include(m => m.MovieGenres)
+					.ThenInclude(mg => mg.Genre)
+					.Where(m => movieIds.Contains(m.MovieId))
+					.ToListAsync(cancellationToken);
+
+			return randomMovies.Select(m => new MovieDetailsRandomResponse(
+				   m.MovieId,
+				   m.TMDBId,
+				   m.Title,
+				   m.Overview,
+				   m.Poster_path,
+				   m.Runtime,
+				   m.Release_date,
+				   m.Trailer_path,
+				   m.MovieGenres.Select(mg => new GenresDetails(
+					   mg.Genre.Id,
+					   mg.Genre.Name ?? string.Empty
+				   ))
+			)).ToList();
 		}
-
-
 		public async Task<IEnumerable<MoviesTopTenResponse>> GetMovieBasedOnGeneraAsync(MovieGeneraRequest? request, CancellationToken cancellationToken = default)
 		{
 			if (request == null || string.IsNullOrWhiteSpace(request.Genere))
@@ -151,17 +169,16 @@ namespace Cinemate.Service.Services.Movies
 				.ToList();
 
 			foreach (var movie in randomizedMovies)
-			{
 				_returnedMovieIds.Add(movie.MovieId);
-			}
-			var result = randomizedMovies.Select(m => new MoviesTopTenResponse(
+
+			var response = randomizedMovies.Select(m => new MoviesTopTenResponse(
 				m.MovieId,
 				m.TMDBId,
 				m.Title,
 				m.Poster_path
 			)).ToList();
 
-			return result;
+			return response;
 		}
 	}
 }

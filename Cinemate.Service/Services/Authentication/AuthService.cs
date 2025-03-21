@@ -143,8 +143,6 @@ namespace Cinemate.Service.Services.Authentication
                 return Result.Failure(UserErrors.DublicatedEmail);
             var user = request.Adapt<ApplicationUser>();
             user.UserName = request.Email;
-			//remove it
-			//user.EmailConfirmed= true;
 			var result = await _userManager.CreateAsync(user, request.Password);
             if (result.Succeeded)
             {
@@ -243,8 +241,6 @@ namespace Cinemate.Service.Services.Authentication
 		}
 		private async Task SendConfirmationEmailAsync(ApplicationUser user, string code)
 		{
-			var origin = _httpContextAccessor.HttpContext?.Request.Headers.Origin;
-
 			var emailBody = EmailBodyBuilder.GenerateEmailBody("EmailConfirmation",
 				new Dictionary<string, string>
 				{
@@ -276,8 +272,6 @@ namespace Cinemate.Service.Services.Authentication
 
         private async Task SendResetPasswordEmailAsync(ApplicationUser user, string code)
 		{
-			var origin = _httpContextAccessor.HttpContext?.Request.Headers.Origin;
-
 			var emailBody = EmailBodyBuilder.GenerateEmailBody("ForgetPassword",
 				new Dictionary<string, string>
 				{
