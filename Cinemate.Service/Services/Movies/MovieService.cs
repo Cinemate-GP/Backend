@@ -92,31 +92,41 @@ namespace Cinemate.Service.Services.Movies
 		{
 			var movieRepository = _unitOfWork.Repository<Movie>();
 			var allMovies = await movieRepository.GetAllAsync();
-			var movieIds = allMovies
-					.OrderBy(_ => Guid.NewGuid())
-					.Take(3)
-					.Select(m => m.MovieId)
-					.ToList();
+			var top100Movies = allMovies
+				.Where(m => m.Popularity != null)
+				.OrderByDescending(m => m.Popularity)
+				.Take(100)
+				.ToList();
+
+			var availableMovies = top100Movies.Where(m => !_returnedMovieIds.Contains(m.MovieId)).ToList();
+			var movieIds = availableMovies
+				.OrderBy(_ => Guid.NewGuid())
+				.Take(3)
+				.Select(m => m.MovieId)
+				.ToList();
+
+			foreach (var id in movieIds)
+				_returnedMovieIds.Add(id);
 
 			var randomMovies = await _context.Movies
-					.Include(m => m.MovieGenres)
-					.ThenInclude(mg => mg.Genre)
-					.Where(m => movieIds.Contains(m.MovieId))
-					.ToListAsync(cancellationToken);
+				.Include(m => m.MovieGenres)
+				.ThenInclude(mg => mg.Genre)
+				.Where(m => movieIds.Contains(m.MovieId))
+				.ToListAsync(cancellationToken);
 
 			return randomMovies.Select(m => new MovieDetailsRandomResponse(
-				   m.MovieId,
-				   m.TMDBId,
-				   m.Title,
-				   m.Overview,
-				   m.Poster_path,
-				   m.Runtime,
-				   m.Release_date,
-				   m.Trailer_path,
-				   m.MovieGenres.Select(mg => new GenresDetails(
-					   mg.Genre.Id,
-					   mg.Genre.Name ?? string.Empty
-				   ))
+				m.MovieId,
+				m.TMDBId,
+				m.Title,
+				m.Overview,
+				m.Poster_path,
+				m.Runtime,
+				m.Release_date,
+				m.Trailer_path,
+				m.MovieGenres.Select(mg => new GenresDetails(
+					mg.Genre.Id,
+					mg.Genre.Name ?? string.Empty
+				))
 			)).ToList();
 		}
 		public async Task<IEnumerable<MoviesTopTenResponse>> GetMovieBasedOnGeneraAsync(MovieGeneraRequest? request, CancellationToken cancellationToken = default)
