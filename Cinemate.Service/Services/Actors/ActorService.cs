@@ -38,6 +38,7 @@ namespace Cinemate.Service.Services.Actors
 				return Result.Failure<ActorDetailsResponse>(ActorErrors.ActorNotFound);
 
 			var movies = actor.CastMovies
+				.OrderByDescending(cm => cm.Movie.Release_date)
 				.Select(cm => new MoviesTopTenResponse(
 					cm.Movie.MovieId,
 					cm.Movie.TMDBId,
