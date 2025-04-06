@@ -33,7 +33,7 @@ namespace Cinemate.API.Controllers
 			var result = await _movieService.GetMovieRandomAsync(cancellationToken);
 			return Ok(result);
 		}
-		[HttpGet("genre")]
+		[HttpGet("genres")]
 		public async Task<IActionResult> GetGenera([FromQuery] MovieGeneraRequest? request, CancellationToken cancellationToken)
 		{
 			var result = await _movieService.GetMovieBasedOnGeneraAsync(request, cancellationToken);
