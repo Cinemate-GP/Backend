@@ -22,7 +22,7 @@ namespace Cinemate.Repository.Repositories
 
             return await _context.Set<TEntity>().ToListAsync();
         }
-        public async Task<TEntity> GetAsync(params object[] keyValues)
+        public async Task<TEntity> GetAsync(int keyValues)
         {
             return await _context.Set<TEntity>().FindAsync(keyValues);
         }

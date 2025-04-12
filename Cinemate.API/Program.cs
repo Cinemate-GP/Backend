@@ -26,7 +26,7 @@ namespace Cinemate.API
             var services = scope.ServiceProvider;
             var context = services.GetRequiredService<ApplicationDbContext>();
 
-            await ApplicationContextSeed.SeedAsync(context);
+          // await ApplicationContextSeed.SeedAsync(context);
              
 
 			// Configure the HTTP request pipeline.
@@ -53,7 +53,7 @@ namespace Cinemate.API
 
 
             app.MapControllers();
-
+            app.UseStaticFiles();
             app.Run();
 
            
