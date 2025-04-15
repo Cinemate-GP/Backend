@@ -82,7 +82,7 @@ namespace Cinemate.Service.Services.User_Like_Movie
 
         public async Task<IEnumerable<UserLikeMovieResponseBack>> GetUserLikeMoviesAsync(CancellationToken cancellationToken = default)
         {
-
+            
             return await _unitOfWork.Repository<UserLikeMovie>()
                         .GetQueryable() // Assuming this returns IQueryable<UserLikeMovie>
                         .Include(ul => ul.User)
@@ -98,7 +98,7 @@ namespace Cinemate.Service.Services.User_Like_Movie
                           ProfilePic = ul.User.ProfilePic
                          })
                         .ToListAsync(cancellationToken);
-
+            
         }
 
     }

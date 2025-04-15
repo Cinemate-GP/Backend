@@ -1,7 +1,9 @@
-﻿using Cinemate.Core.Helpers;
+﻿using Cinemate.Core.Entities;
+using Cinemate.Core.Helpers;
 using Cinemate.Core.Service_Contract;
 using Cinemate.Service.Services.Actors;
 using Cinemate.Service.Services.Authentication;
+using Cinemate.Service.Services.File;
 using Cinemate.Service.Services.Movies;
 using Cinemate.Service.Services.Profile;
 using Cinemate.Service.Services.User_Like_Movie;

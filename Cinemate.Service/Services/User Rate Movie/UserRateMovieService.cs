@@ -92,7 +92,7 @@ namespace Cinemate.Service.Services.User_Rate_Movie
                         .Include(ul => ul.User)
                         .Include(ul => ul.Movie)
                         .Select(ul => new UserRateMovieResponseBack
-                        {
+        {
                             UserId = ul.UserId,
                             MovieId = ul.MovieId,
                             Stars=ul.Stars,
@@ -104,6 +104,8 @@ namespace Cinemate.Service.Services.User_Rate_Movie
                         })
                         .ToListAsync(cancellationToken);
 
+            // Return the mapped response, not the original `Watched`
+            return Rated;
         }
     }
 }

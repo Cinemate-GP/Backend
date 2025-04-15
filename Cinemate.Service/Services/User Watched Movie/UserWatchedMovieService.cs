@@ -86,7 +86,7 @@ namespace Cinemate.Service.Services.User_Watched_Movie
                        .Include(ul => ul.User)
                        .Include(ul => ul.Movie)
                        .Select(ul => new UserWatchedMovieResponseBack
-                       {
+        {
                            UserId = ul.UserId,
                            MovieId = ul.MovieId,
                            Title = ul.Movie.Title,

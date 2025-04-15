@@ -14,6 +14,8 @@ using Cinemate.Repository.Data.Contexts;
 using Microsoft.EntityFrameworkCore;
 using Cinemate.Core.Contracts.Actors;
 using Cinemate.Core.Contracts.Genres;
+using Cinemate.Core.Abstractions;
+using Cinemate.Core.Contracts.Common;
 
 namespace Cinemate.Service.Services.Movies
 {
@@ -92,48 +94,57 @@ namespace Cinemate.Service.Services.Movies
 		{
 			var movieRepository = _unitOfWork.Repository<Movie>();
 			var allMovies = await movieRepository.GetAllAsync();
-			var movieIds = allMovies
-					.OrderBy(_ => Guid.NewGuid())
-					.Take(3)
-					.Select(m => m.MovieId)
-					.ToList();
+			var top100Movies = allMovies
+				.Where(m => m.Popularity != null)
+				.OrderByDescending(m => m.Popularity)
+				.Take(100)
+				.ToList();
+
+			var availableMovies = top100Movies.Where(m => !_returnedMovieIds.Contains(m.MovieId)).ToList();
+			var movieIds = availableMovies
+				.OrderBy(_ => Guid.NewGuid())
+				.Take(3)
+				.Select(m => m.MovieId)
+				.ToList();
+
+			foreach (var id in movieIds)
+				_returnedMovieIds.Add(id);
 
 			var randomMovies = await _context.Movies
-					.Include(m => m.MovieGenres)
-					.ThenInclude(mg => mg.Genre)
-					.Where(m => movieIds.Contains(m.MovieId))
-					.ToListAsync(cancellationToken);
+				.Include(m => m.MovieGenres)
+				.ThenInclude(mg => mg.Genre)
+				.Where(m => movieIds.Contains(m.MovieId))
+				.ToListAsync(cancellationToken);
 
 			return randomMovies.Select(m => new MovieDetailsRandomResponse(
-				   m.MovieId,
-				   m.TMDBId,
-				   m.Title,
-				   m.Overview,
-				   m.Poster_path,
-				   m.Runtime,
-				   m.Release_date,
-				   m.Trailer_path,
-				   m.MovieGenres.Select(mg => new GenresDetails(
-					   mg.Genre.Id,
-					   mg.Genre.Name ?? string.Empty
-				   ))
+				m.MovieId,
+				m.TMDBId,
+				m.Title,
+				m.Overview,
+				m.Poster_path,
+				m.Runtime,
+				m.Release_date,
+				m.Trailer_path,
+				m.MovieGenres.Select(mg => new GenresDetails(
+					mg.Genre.Id,
+					mg.Genre.Name ?? string.Empty
+				))
 			)).ToList();
 		}
 		public async Task<IEnumerable<MoviesTopTenResponse>> GetMovieBasedOnGeneraAsync(MovieGeneraRequest? request, CancellationToken cancellationToken = default)
 		{
 			if (request == null || string.IsNullOrWhiteSpace(request.Genere))
 			{
-				var genres = await _context.Genres.ToListAsync(cancellationToken);
-				if (!genres.Any())
-					return Enumerable.Empty<MoviesTopTenResponse>();
+				var top100ByYear = await _context.Movies
+					.Where(m => m.Release_date != null)
+					.OrderByDescending(m => m.Release_date)
+					.Take(100)
+					.ToListAsync(cancellationToken);
 
-				var randomGenre = genres.OrderBy(_ => Guid.NewGuid()).First();
-				var randomMovies = await _context.Movies
-					.Include(m => m.MovieGenres)
-					.Where(m => m.MovieGenres.Any(mg => mg.GenreId == randomGenre.Id))
+				var randomMovies = top100ByYear
 					.OrderBy(_ => Guid.NewGuid())
 					.Take(10)
-					.ToListAsync(cancellationToken);
+					.ToList();
 
 				return randomMovies.Select(m => new MoviesTopTenResponse(
 					m.MovieId,
@@ -145,39 +156,63 @@ namespace Cinemate.Service.Services.Movies
 			var genre = await _context.Genres
 				.FirstOrDefaultAsync(g => g.Name == request.Genere, cancellationToken);
 
-			if (genre == null)
-				return Enumerable.Empty<MoviesTopTenResponse>();
-
-			var availableMovies = await _context.Movies
+			var top50MoviesByYear = await _context.Movies
 				.Include(m => m.MovieGenres)
-				.Where(m => m.MovieGenres.Any(mg => mg.GenreId == genre.Id) &&
-						   !_returnedMovieIds.Contains(m.MovieId))
+				.Where(m => m.MovieGenres.Any(mg => mg.GenreId == genre.Id) && m.Release_date != null)
+				.OrderByDescending(m => m.Release_date)
+				.Take(50)
 				.ToListAsync(cancellationToken);
 
-			if (!availableMovies.Any())
-			{
-				_returnedMovieIds.Clear();
+			var availableMovies = top50MoviesByYear
+				.Where(m => !_returnedMovieIds.Contains(m.MovieId))
+				.ToList();
 
-				availableMovies = await _context.Movies
-					.Include(m => m.MovieGenres)
-					.Where(m => m.MovieGenres.Any(mg => mg.GenreId == genre.Id))
-					.ToListAsync(cancellationToken);
-			}
-			var randomizedMovies = availableMovies
+			var selectedMovies = availableMovies
 				.OrderBy(_ => Guid.NewGuid())
 				.Take(10)
 				.ToList();
 
-			foreach (var movie in randomizedMovies)
+			foreach (var movie in selectedMovies)
 				_returnedMovieIds.Add(movie.MovieId);
 
-			var response = randomizedMovies.Select(m => new MoviesTopTenResponse(
+			var response = selectedMovies.Select(m => new MoviesTopTenResponse(
 				m.MovieId,
 				m.TMDBId,
 				m.Title,
 				m.Poster_path
 			)).ToList();
+			return response;
+		}
+		public async Task<PaginatedList<MoviesTopTenResponse>> GetPaginatedMovieBasedAsync(RequestFilters request, CancellationToken cancellationToken = default)
+		{
+			var query = _context.Movies.AsQueryable();
+			if (!string.IsNullOrEmpty(request.SearchValue))
+				query = query.Where(m => m.Title.Contains(request.SearchValue));
 
+			if (!string.IsNullOrEmpty(request.Gener))
+				query = query.Where(m => m.MovieGenres.Any(mg => mg.Genre.Name == request.Gener));
+
+			if (!string.IsNullOrEmpty(request.Year))
+				query = query.Where(m => m.Release_date.HasValue && m.Release_date.Value.Year.ToString().Contains(request.Year));
+
+			query = request.SortDirection == SortDirection.Descending
+				? query.OrderByDescending(m => m.Popularity)
+				: query.OrderBy(m => m.Popularity);
+
+			var movies = query
+				   .Select(m => new MoviesTopTenResponse(
+					   m.MovieId,
+					   m.TMDBId,
+					   m.Title,
+					   m.Poster_path
+				   )).AsNoTracking();
+
+			var response = await PaginatedList<MoviesTopTenResponse>.CreateAsync(
+				movies,
+				request.PageNumber,
+				request.PageSize,
+				cancellationToken
+			);
 			return response;
 		}
 	}

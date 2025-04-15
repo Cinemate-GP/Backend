@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Cinemate.Repository.Abstractions;
 using Cinemate.Core.Contracts.Movies;
+using Cinemate.Core.Contracts.Common;
 
 namespace Cinemate.API.Controllers
 {
@@ -33,10 +34,16 @@ namespace Cinemate.API.Controllers
 			var result = await _movieService.GetMovieRandomAsync(cancellationToken);
 			return Ok(result);
 		}
-		[HttpGet("genre")]
+		[HttpGet("genres")]
 		public async Task<IActionResult> GetGenera([FromQuery] MovieGeneraRequest? request, CancellationToken cancellationToken)
 		{
 			var result = await _movieService.GetMovieBasedOnGeneraAsync(request, cancellationToken);
+			return Ok(result);
+		}
+		[HttpGet("filter")]
+		public async Task<IActionResult> GetPaginated([FromQuery] RequestFilters request, CancellationToken cancellationToken)
+		{
+			var result = await _movieService.GetPaginatedMovieBasedAsync(request, cancellationToken);
 			return Ok(result);
 		}
 	}

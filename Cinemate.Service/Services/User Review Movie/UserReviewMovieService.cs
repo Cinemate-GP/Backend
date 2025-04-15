@@ -87,7 +87,7 @@ namespace Cinemate.Service.Services.User_Review_Movie
                         .Include(ul => ul.User)
                         .Include(ul => ul.Movie)
                         .Select(ul => new UserReviewMovieResponseBack
-                        {
+        {
                             UserId = ul.UserId,
                             MovieId = ul.MovieId,
                             ReviewBody = ul.ReviewBody,
@@ -99,6 +99,7 @@ namespace Cinemate.Service.Services.User_Review_Movie
                         })
                         .ToListAsync(cancellationToken);
 
+            return Reviewed;
         }
     }
 }

@@ -77,7 +77,7 @@ namespace Cinemate.Service.Services.Profile
             if (string.IsNullOrEmpty(userId))
                 return Enumerable.Empty<UserLikeMovieResponseBack>();
             var result= await userLikeMovieService.GetUserLikeMoviesAsync(cancellationToken);
-
+           
             return result.Where(r => r.UserId == userId);
 
         }
