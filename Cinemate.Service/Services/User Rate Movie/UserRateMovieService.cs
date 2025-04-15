@@ -105,7 +105,7 @@ namespace Cinemate.Service.Services.User_Rate_Movie
                         .ToListAsync(cancellationToken);
 
             // Return the mapped response, not the original `Watched`
-            return Rated;
+         
         }
     }
 }
