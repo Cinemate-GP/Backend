@@ -99,7 +99,7 @@ namespace Cinemate.Service.Services.User_Review_Movie
                         })
                         .ToListAsync(cancellationToken);
 
-            return Reviewed;
+          
         }
     }
 }
