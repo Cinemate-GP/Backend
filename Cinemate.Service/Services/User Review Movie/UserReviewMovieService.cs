@@ -1,13 +1,17 @@
 ﻿using Azure;
+using Cinemate.Core.Contracts.User_Rate_Movie;
 using Cinemate.Core.Contracts.User_Review_Movie;
 using Cinemate.Core.Contracts.User_Watched_Movie;
 using Cinemate.Core.Entities;
 using Cinemate.Core.Errors.ProfileError;
 using Cinemate.Core.Repository_Contract;
 using Cinemate.Core.Service_Contract;
+using Microsoft.AspNetCore.Http;
+using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Claims;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -16,14 +20,22 @@ namespace Cinemate.Service.Services.User_Review_Movie
     public class UserReviewMovieService : IUserReviewMovieService
     {
         private readonly IUnitOfWork _unitOfWork;
-        public UserReviewMovieService(IUnitOfWork unitOfWork)
+        private readonly IHttpContextAccessor _httpContextAccessor;
+
+        public UserReviewMovieService(IUnitOfWork unitOfWork, IHttpContextAccessor httpContextAccessor)
         {
             _unitOfWork = unitOfWork;
+            _httpContextAccessor = httpContextAccessor;
         }
+
         public async Task<OperationResult> AddUserReviewMovieAsync(UserReviewMovieResponse userReviewMovieResponse, CancellationToken cancellationToken = default)
         {
             try
             {
+                var userId = _httpContextAccessor.HttpContext?.User?.FindFirstValue(ClaimTypes.NameIdentifier);
+
+                if (string.IsNullOrEmpty(userId))
+                    return OperationResult.Failure("Unauthorized user.");
                 var entity = new UserReviewMovie
                 {
                     UserId = userReviewMovieResponse.UserId,
@@ -68,9 +80,24 @@ namespace Cinemate.Service.Services.User_Review_Movie
             }
         }
 
-        public async Task<IEnumerable<UserReviewMovie>> GetUserReviewMoviesAsync(CancellationToken cancellationToken = default)
+        public async Task<IEnumerable<UserReviewMovieResponseBack>> GetUserReviewMoviesAsync(CancellationToken cancellationToken = default)
         {
-            var Reviewed = await _unitOfWork.Repository<UserReviewMovie>().GetAllAsync();
+            return await _unitOfWork.Repository<UserReviewMovie>()
+                        .GetQueryable() // Assuming this returns IQueryable<UserLikeMovie>
+                        .Include(ul => ul.User)
+                        .Include(ul => ul.Movie)
+                        .Select(ul => new UserReviewMovieResponseBack
+        {
+                            UserId = ul.UserId,
+                            MovieId = ul.MovieId,
+                            ReviewBody = ul.ReviewBody,
+                            Title = ul.Movie.Title,
+                            TMDBId = ul.Movie.TMDBId,
+                            Poster_path = ul.Movie.Poster_path,
+                            FullName = ul.User.FullName,
+                            ProfilePic = ul.User.ProfilePic
+                        })
+                        .ToListAsync(cancellationToken);
 
             return Reviewed;
         }

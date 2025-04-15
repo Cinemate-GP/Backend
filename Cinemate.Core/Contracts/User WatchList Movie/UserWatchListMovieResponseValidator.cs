@@ -1,15 +1,16 @@
-﻿using FluentValidation;
+﻿using Cinemate.Core.Contracts.User_Like;
+using FluentValidation;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Cinemate.Core.Contracts.User_Like
+namespace Cinemate.Core.Contracts.User_WatchList_Movie
 {
-    public class UserLikeMovieResponseValidator: AbstractValidator<UserLikeMovieResponse>
+    public class UserWatchListMovieResponseValidator : AbstractValidator<UserWatchListMovieResponse>
     {
-        public UserLikeMovieResponseValidator()
+        public UserWatchListMovieResponseValidator()
         {
             RuleFor(x => x.UserId)
                 .NotEmpty()

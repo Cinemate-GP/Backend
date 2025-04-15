@@ -17,6 +17,10 @@ namespace Cinemate.Repository.Repositories
         {
             _context = storeDbContext;
         }
+        public IQueryable<TEntity> GetQueryable()
+        {
+            return _context.Set<TEntity>();
+        }
         public async Task<IEnumerable<TEntity>> GetAllAsync()
         {
 

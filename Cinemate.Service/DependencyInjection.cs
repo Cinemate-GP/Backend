@@ -10,6 +10,7 @@ using Cinemate.Service.Services.User_Like_Movie;
 using Cinemate.Service.Services.User_Rate_Movie;
 using Cinemate.Service.Services.User_Review_Movie;
 using Cinemate.Service.Services.User_Watched_Movie;
+using Cinemate.Service.Services.User_Watchlist_Movie;
 using Hangfire;
 using Microsoft.AspNetCore.Identity.UI.Services;
 using Microsoft.Extensions.Configuration;
@@ -31,6 +32,7 @@ namespace Cinemate.Service
 			services.AddScoped<IUserWatchedMovieService, UserWatchedMovieService>();
 			services.AddScoped<IUserRateMovieService, UserRateMovieService>();
 			services.AddScoped<IUserReviewMovieService, UserReviewMovieService>();
+			services.AddScoped<IUserWatchlistMovieService, UserWatchlistMovieService>();
             services.AddBackgroundJobsConfig(configuration);
             return services;
 		}

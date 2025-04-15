@@ -82,5 +82,11 @@ namespace Cinemate.API.Controllers
             var watchedMovies = await _profileService.GetAllMoviesWatched(cancellationToken);
             return Ok(watchedMovies);
         }
+        [HttpGet("WatchlistMovies")]
+        public async Task<IActionResult> GetAllWatchlistMovies(CancellationToken cancellationToken)
+        {
+            var watchedMovies = await _profileService.GetAllWatchlist(cancellationToken);
+            return Ok(watchedMovies);
+        }
     }
 }

@@ -1,5 +1,10 @@
 ﻿using Cinemate.Core.Abstractions.Consts;
 using Cinemate.Core.Contracts.Profile;
+using Cinemate.Core.Contracts.User_Like;
+using Cinemate.Core.Contracts.User_Rate_Movie;
+using Cinemate.Core.Contracts.User_Review_Movie;
+using Cinemate.Core.Contracts.User_Watched_Movie;
+using Cinemate.Core.Contracts.User_WatchList_Movie;
 using Cinemate.Core.Entities;
 using Cinemate.Core.Entities.Auth;
 using Cinemate.Core.Errors.ProfileError;
@@ -29,9 +34,12 @@ namespace Cinemate.Service.Services.Profile
         private readonly IUserRateMovieService userRateMovieService;
         private readonly IUserReviewMovieService userReviewMovieService;
         private readonly IUserWatchedMovieService userWatchedMovieService;
+        private readonly IUserWatchlistMovieService userWatchlistService;
 
 
-        public ProfileService(UserManager<ApplicationUser> userManager, SignInManager<ApplicationUser> signInManager, IFileService fileService, IHttpContextAccessor httpContextAccessor, IUserLikeMovieService userLikeMovieService, IUserRateMovieService userRateMovieService, IUserReviewMovieService userReviewMovieService, IUserWatchedMovieService userWatchedMovieService)
+        
+
+        public ProfileService(UserManager<ApplicationUser> userManager, SignInManager<ApplicationUser> signInManager, IFileService fileService, IHttpContextAccessor httpContextAccessor, IUserLikeMovieService userLikeMovieService, IUserRateMovieService userRateMovieService, IUserReviewMovieService userReviewMovieService, IUserWatchedMovieService userWatchedMovieService, IUserWatchlistMovieService userWatchlistService)
         {
             _userManager = userManager;
             _signInManager = signInManager;
@@ -41,6 +49,7 @@ namespace Cinemate.Service.Services.Profile
             this.userRateMovieService = userRateMovieService;
             this.userReviewMovieService = userReviewMovieService;
             this.userWatchedMovieService = userWatchedMovieService;
+            this.userWatchlistService = userWatchlistService;
         }
 
         public async Task<OperationResult> DeleteAsync(CancellationToken cancellationToken = default)
@@ -62,37 +71,57 @@ namespace Cinemate.Service.Services.Profile
             return OperationResult.Success("User deleted and signed out.");
         }
 
-        public async Task<IEnumerable<UserLikeMovie>> GetAllMoviesLiked(CancellationToken cancellationToken = default)
+        public async Task<IEnumerable<UserLikeMovieResponseBack>> GetAllMoviesLiked(CancellationToken cancellationToken = default)
         {
             var userId = _httpContextAccessor.HttpContext?.User?.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(userId))
+                return Enumerable.Empty<UserLikeMovieResponseBack>();
             var result= await userLikeMovieService.GetUserLikeMoviesAsync(cancellationToken);
            
-            return result;
+            return result.Where(r => r.UserId == userId);
 
         }
 
-        public async Task<IEnumerable<UserRateMovie>> GetAllMoviesRated(CancellationToken cancellationToken = default)
+        public async Task<IEnumerable<UserRateMovieResponseBack>> GetAllMoviesRated(CancellationToken cancellationToken = default)
         {
             var userId = _httpContextAccessor.HttpContext?.User?.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(userId))
+                return Enumerable.Empty<UserRateMovieResponseBack>();
             var result = await userRateMovieService.GetUserRateMoviesAsync(cancellationToken);
 
-            return result;
+            return result.Where(r => r.UserId == userId);
         }
 
-        public async Task<IEnumerable<UserReviewMovie>> GetAllMoviesReviews(CancellationToken cancellationToken = default)
+        public async Task<IEnumerable<UserReviewMovieResponseBack>> GetAllMoviesReviews(CancellationToken cancellationToken = default)
         {
             var userId = _httpContextAccessor.HttpContext?.User?.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            if (string.IsNullOrEmpty(userId))
+                return Enumerable.Empty<UserReviewMovieResponseBack>();
+
             var result = await userReviewMovieService.GetUserReviewMoviesAsync(cancellationToken);
 
-            return result;
+            return result.Where(r => r.UserId == userId);
         }
 
-        public async Task<IEnumerable<UserWatchedMovie>> GetAllMoviesWatched(CancellationToken cancellationToken = default)
+
+        public async Task<IEnumerable<UserWatchedMovieResponseBack>> GetAllMoviesWatched(CancellationToken cancellationToken = default)
         {
             var userId = _httpContextAccessor.HttpContext?.User?.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(userId))
+                return Enumerable.Empty<UserWatchedMovieResponseBack>();
             var result = await userWatchedMovieService.GetUserWatchedMoviesAsync(cancellationToken);
 
-            return result;
+            return result.Where(r => r.UserId == userId);
+        }
+        public async Task<IEnumerable<UserWatchListMovieResponseBack>> GetAllWatchlist(CancellationToken cancellationToken = default)
+        {
+            var userId = _httpContextAccessor.HttpContext?.User?.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(userId))
+                return Enumerable.Empty<UserWatchListMovieResponseBack>();
+            var result = await userWatchlistService.GetUserWatchlistMoviesAsync(cancellationToken);
+
+            return result.Where(r => r.UserId == userId);
         }
 
         public async Task<OperationResult> UpdateProfileAsync(UpdateProfileRequest request, CancellationToken cancellationToken = default)

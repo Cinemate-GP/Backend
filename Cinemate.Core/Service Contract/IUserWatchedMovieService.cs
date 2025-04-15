@@ -16,7 +16,7 @@ namespace Cinemate.Core.Service_Contract
 
         Task<OperationResult> DeleteUserWatchedMovieAsync(UserWatchedMovieResponse response, CancellationToken cancellationToken = default);
 
-        Task<IEnumerable<UserWatchedMovie>> GetUserWatchedMoviesAsync(CancellationToken cancellationToken = default);
+        Task<IEnumerable<UserWatchedMovieResponseBack>> GetUserWatchedMoviesAsync(CancellationToken cancellationToken = default);
 
 
 
