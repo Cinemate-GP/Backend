@@ -10,7 +10,9 @@ namespace Cinemate.Core.Repository_Contract
     {
         Task<IEnumerable<TEntity>> GetAllAsync();
 
-        Task<TEntity> GetAsync(params object[] keyValues);
+        IQueryable<TEntity> GetQueryable();
+
+        Task<TEntity> GetAsync(int keyValues);
 
 
         Task AddAsync(TEntity entity);
