@@ -43,7 +43,7 @@ namespace Cinemate.Service.Services.Movies
 					m.MovieId,
 					m.TMDBId,
 					m.Title,
-					m.Poster_path
+					m.PosterPath
 				)).ToList();
 
 			return response;
@@ -65,8 +65,8 @@ namespace Cinemate.Service.Services.Movies
 					cm.Cast.Id,
 					cm.Cast.Name ?? string.Empty,
 					cm.Cast.ProfilePath,
-					cm.Cast.KnownForDepartment,
-					cm.Cast.Character
+					cm.Cast.KnownForDepartment
+					//cm.Cast.Character
 				)).ToList();
 
 			var genres = movie.MovieGenres
@@ -80,10 +80,10 @@ namespace Cinemate.Service.Services.Movies
 				movie.TMDBId,
 				movie.Title,
 				movie.Overview,
-				movie.Poster_path,
+				movie.PosterPath,
 				movie.Runtime,
-				movie.Release_date,
-				movie.Trailer_path,
+				movie.ReleaseDate,
+				movie.Trailer,
 				actors,  
 				genres
 			);
@@ -95,7 +95,7 @@ namespace Cinemate.Service.Services.Movies
 			var movieRepository = _unitOfWork.Repository<Movie>();
 			var allMovies = await movieRepository.GetAllAsync();
 			var top100Movies = allMovies
-				.Where(m => m.Popularity != null)
+				.Where(m => m.Popularity != null) // TODO
 				.OrderByDescending(m => m.Popularity)
 				.Take(100)
 				.ToList();
@@ -121,10 +121,10 @@ namespace Cinemate.Service.Services.Movies
 				m.TMDBId,
 				m.Title,
 				m.Overview,
-				m.Poster_path,
+				m.PosterPath,
 				m.Runtime,
-				m.Release_date,
-				m.Trailer_path,
+				m.ReleaseDate,
+				m.Trailer,
 				m.MovieGenres.Select(mg => new GenresDetails(
 					mg.Genre.Id,
 					mg.Genre.Name ?? string.Empty
@@ -136,8 +136,8 @@ namespace Cinemate.Service.Services.Movies
 			if (request == null || string.IsNullOrWhiteSpace(request.Genere))
 			{
 				var top100ByYear = await _context.Movies
-					.Where(m => m.Release_date != null)
-					.OrderByDescending(m => m.Release_date)
+					.Where(m => m.ReleaseDate != null)
+					.OrderByDescending(m => m.ReleaseDate)
 					.Take(100)
 					.ToListAsync(cancellationToken);
 
@@ -150,7 +150,7 @@ namespace Cinemate.Service.Services.Movies
 					m.MovieId,
 					m.TMDBId,
 					m.Title,
-					m.Poster_path
+					m.PosterPath
 				)).ToList();
 			}
 			var genre = await _context.Genres
@@ -158,8 +158,8 @@ namespace Cinemate.Service.Services.Movies
 
 			var top50MoviesByYear = await _context.Movies
 				.Include(m => m.MovieGenres)
-				.Where(m => m.MovieGenres.Any(mg => mg.GenreId == genre.Id) && m.Release_date != null)
-				.OrderByDescending(m => m.Release_date)
+				.Where(m => m.MovieGenres.Any(mg => mg.GenreId == genre.Id ) && m.ReleaseDate != null)
+				.OrderByDescending(m => m.ReleaseDate)
 				.Take(50)
 				.ToListAsync(cancellationToken);
 
@@ -179,7 +179,7 @@ namespace Cinemate.Service.Services.Movies
 				m.MovieId,
 				m.TMDBId,
 				m.Title,
-				m.Poster_path
+				m.PosterPath
 			)).ToList();
 			return response;
 		}
@@ -193,7 +193,7 @@ namespace Cinemate.Service.Services.Movies
 				query = query.Where(m => m.MovieGenres.Any(mg => mg.Genre.Name == request.Gener));
 
 			if (!string.IsNullOrEmpty(request.Year))
-				query = query.Where(m => m.Release_date.HasValue && m.Release_date.Value.Year.ToString().Contains(request.Year));
+				query = query.Where(m => m.ReleaseDate.HasValue && m.ReleaseDate.Value.Year.ToString().Contains(request.Year));
 
 			query = request.SortDirection == SortDirection.Descending
 				? query.OrderByDescending(m => m.Popularity)
@@ -204,7 +204,7 @@ namespace Cinemate.Service.Services.Movies
 					   m.MovieId,
 					   m.TMDBId,
 					   m.Title,
-					   m.Poster_path
+					   m.PosterPath
 				   )).AsNoTracking();
 
 			var response = await PaginatedList<MoviesTopTenResponse>.CreateAsync(

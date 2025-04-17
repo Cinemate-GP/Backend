@@ -212,7 +212,7 @@ namespace Cinemate.Repository.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Casts");
+                    b.ToTable("Casts", (string)null);
                 });
 
             modelBuilder.Entity("Cinemate.Core.Entities.CastMovie", b =>
@@ -227,7 +227,7 @@ namespace Cinemate.Repository.Migrations
 
                     b.HasIndex("Tmdb_Id");
 
-                    b.ToTable("CastMovie");
+                    b.ToTable("CastMovie", (string)null);
                 });
 
             modelBuilder.Entity("Cinemate.Core.Entities.Genre", b =>
@@ -243,7 +243,7 @@ namespace Cinemate.Repository.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Genres");
+                    b.ToTable("Genres", (string)null);
                 });
 
             modelBuilder.Entity("Cinemate.Core.Entities.Movie", b =>
@@ -292,7 +292,7 @@ namespace Cinemate.Repository.Migrations
 
                     b.HasKey("MovieId");
 
-                    b.ToTable("Movies");
+                    b.ToTable("Movies", (string)null);
                 });
 
             modelBuilder.Entity("Cinemate.Core.Entities.MovieGenre", b =>
@@ -307,7 +307,7 @@ namespace Cinemate.Repository.Migrations
 
                     b.HasIndex("GenreId");
 
-                    b.ToTable("MovieGenres");
+                    b.ToTable("MovieGenres", (string)null);
                 });
 
             modelBuilder.Entity("Cinemate.Core.Entities.UserCastFollow", b =>
@@ -327,7 +327,7 @@ namespace Cinemate.Repository.Migrations
 
                     b.HasIndex("CastId");
 
-                    b.ToTable("UserCastFollows");
+                    b.ToTable("UserCastFollows", (string)null);
                 });
 
             modelBuilder.Entity("Cinemate.Core.Entities.UserLikeMovie", b =>
@@ -347,7 +347,7 @@ namespace Cinemate.Repository.Migrations
 
                     b.HasIndex("MovieId");
 
-                    b.ToTable("UserLikeMovies");
+                    b.ToTable("UserLikeMovies", (string)null);
                 });
 
             modelBuilder.Entity("Cinemate.Core.Entities.UserMovieWatchList", b =>
@@ -367,7 +367,7 @@ namespace Cinemate.Repository.Migrations
 
                     b.HasIndex("MovieId");
 
-                    b.ToTable("UserMovieWatchList");
+                    b.ToTable("UserMovieWatchList", (string)null);
                 });
 
             modelBuilder.Entity("Cinemate.Core.Entities.UserRateMovie", b =>
@@ -390,7 +390,7 @@ namespace Cinemate.Repository.Migrations
 
                     b.HasIndex("MovieId");
 
-                    b.ToTable("UserRateMovies");
+                    b.ToTable("UserRateMovies", (string)null);
                 });
 
             modelBuilder.Entity("Cinemate.Core.Entities.UserReviewMovie", b =>
@@ -421,7 +421,7 @@ namespace Cinemate.Repository.Migrations
 
                     b.HasIndex("MovieId");
 
-                    b.ToTable("UserReviewMovies");
+                    b.ToTable("UserReviewMovies", (string)null);
                 });
 
             modelBuilder.Entity("Cinemate.Core.Entities.UserWatchedMovie", b =>
@@ -441,7 +441,7 @@ namespace Cinemate.Repository.Migrations
 
                     b.HasIndex("MovieId");
 
-                    b.ToTable("UserWatchedMovies");
+                    b.ToTable("UserWatchedMovies", (string)null);
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
@@ -574,7 +574,7 @@ namespace Cinemate.Repository.Migrations
 
                     b.HasIndex("FollowId");
 
-                    b.ToTable("UserFollows");
+                    b.ToTable("UserFollows", (string)null);
                 });
 
             modelBuilder.Entity("Cinemate.Core.Entities.Auth.ApplicationUser", b =>

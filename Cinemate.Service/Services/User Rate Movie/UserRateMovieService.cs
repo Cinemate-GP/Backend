@@ -98,7 +98,7 @@ namespace Cinemate.Service.Services.User_Rate_Movie
                             Stars=ul.Stars,
                             Title = ul.Movie.Title,
                             TMDBId = ul.Movie.TMDBId,
-                            Poster_path = ul.Movie.Poster_path,
+                            Poster_path = ul.Movie.PosterPath,
                             FullName = ul.User.FullName,
                             ProfilePic = ul.User.ProfilePic
                         })
