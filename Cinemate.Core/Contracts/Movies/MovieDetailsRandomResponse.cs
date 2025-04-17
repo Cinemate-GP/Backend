@@ -10,14 +10,15 @@ namespace Cinemate.Core.Contracts.Movies
 {
     public record MovieDetailsRandomResponse
 	(
-		int MovieId,
 		int TMDBId,
-		string? title,
-		string? Overview,
-		string? Poster_path,
-		int? Runtime,
-		DateOnly? Release_date,
-		string? Trailer_path,
+		string? Title,
+		string? Tagline,
+		string? PosterPath,
+        string? BackdropPath,
+		string? IMDBRating,
+        int? Runtime,
+		DateOnly? ReleasDate,
+		string? Trailer,
 		IEnumerable<GenresDetails> GenresDetails
 	);
 }

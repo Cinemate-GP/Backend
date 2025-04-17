@@ -8,9 +8,9 @@ namespace Cinemate.Core.Entities
 {
     public class Movie
     {
-        public int MovieId { get; set; }
+
         public int TMDBId { get; set; }
-        public int? IMDBId { get; set; }
+        public int IMDBId { get; set; }
         public string? Title { get; set; }
         public string? Overview { get; set; }
         public DateOnly? ReleaseDate { get; set; }

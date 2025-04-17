@@ -8,7 +8,7 @@ namespace Cinemate.Core.Entities
 {
     public class Cast
     {
-        public int Id { get; set; }
+        public int CastId { get; set; }
         public string? Name { get; set; } 
         public int? Gender { get; set; }
         public string? Biography { get; set; }

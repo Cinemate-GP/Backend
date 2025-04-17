@@ -10,8 +10,14 @@ namespace Cinemate.Core.Contracts.Actors
     public record ActorDetailsResponse
     (
         int Id,
-		string Name,
-		string? ProfilePath,
-		IEnumerable<MoviesTopTenResponse> Movies
+        string? Name,
+        string? Biography,
+        DateOnly? BirthDay,
+        DateOnly? DeathDay,
+        string? ProfilePath,
+        string? PlaceOfBirth,
+        double? Popularity,
+        string? KnownForDepartment,
+        IEnumerable<MoviesTopTenResponse> Movies
 	);
 }

@@ -9,14 +9,14 @@ using System.Threading.Tasks;
 
 namespace Cinemate.Repository.Data.Configuration
 {
-	class MovieGenreConfigration : IEntityTypeConfiguration<MovieGenre>
+	public class MovieGenreConfigration : IEntityTypeConfiguration<MovieGenre>
 	{
 		public void Configure(EntityTypeBuilder<MovieGenre> builder)
 		{
-			builder.HasKey(x => new { x.MovieId, x.GenreId });
+			builder.HasKey(x => new { x.TMDBId, x.GenreId });
 			builder.HasOne(x => x.Movie)
 					.WithMany(x => x.MovieGenres)
-					.HasForeignKey(x => x.MovieId)
+					.HasForeignKey(x => x.TMDBId)
 					.OnDelete(DeleteBehavior.Restrict);
 
 			builder.HasOne(x => x.Genre)
