@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Cinemate.Repository.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20250315225546_AddTableCastMovie")]
-    partial class AddTableCastMovie
+    [Migration("20250417183457_AddIdentityTableAndRefreshTokenTableAndDefaultRolesAndMovieAndCastAndGenreTables")]
+    partial class AddIdentityTableAndRefreshTokenTableAndDefaultRolesAndMovieAndCastAndGenreTables
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -40,20 +40,20 @@ namespace Cinemate.Repository.Migrations
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("bit");
 
-                    b.Property<string>("name")
+                    b.Property<string>("Name")
                         .HasMaxLength(256)
                         .HasColumnType("nvarchar(256)");
 
-                    b.Property<string>("Normalizedname")
+                    b.Property<string>("NormalizedName")
                         .HasMaxLength(256)
                         .HasColumnType("nvarchar(256)");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("Normalizedname")
+                    b.HasIndex("NormalizedName")
                         .IsUnique()
-                        .HasDatabaseName("RolenameIndex")
-                        .HasFilter("[Normalizedname] IS NOT NULL");
+                        .HasDatabaseName("RoleNameIndex")
+                        .HasFilter("[NormalizedName] IS NOT NULL");
 
                     b.ToTable("AspNetRoles", (string)null);
 
@@ -64,8 +64,8 @@ namespace Cinemate.Repository.Migrations
                             ConcurrencyStamp = "f51e5a91-bced-49c2-8b86-c2e170c0846c",
                             IsDefault = false,
                             IsDeleted = false,
-                            name = "Admin",
-                            Normalizedname = "ADMIN"
+                            Name = "Admin",
+                            NormalizedName = "ADMIN"
                         },
                         new
                         {
@@ -73,8 +73,8 @@ namespace Cinemate.Repository.Migrations
                             ConcurrencyStamp = "86b1eaf4-1099-4170-86d5-b30162221da9",
                             IsDefault = true,
                             IsDeleted = false,
-                            name = "Member",
-                            Normalizedname = "MEMBER"
+                            Name = "Member",
+                            NormalizedName = "MEMBER"
                         });
                 });
 
@@ -103,7 +103,7 @@ namespace Cinemate.Repository.Migrations
                     b.Property<bool>("EmailConfirmed")
                         .HasColumnType("bit");
 
-                    b.Property<string>("Fullname")
+                    b.Property<string>("FullName")
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
@@ -128,7 +128,7 @@ namespace Cinemate.Repository.Migrations
                         .HasMaxLength(256)
                         .HasColumnType("nvarchar(256)");
 
-                    b.Property<string>("NormalizedUsername")
+                    b.Property<string>("NormalizedUserName")
                         .HasMaxLength(256)
                         .HasColumnType("nvarchar(256)");
 
@@ -150,7 +150,7 @@ namespace Cinemate.Repository.Migrations
                     b.Property<bool>("TwoFactorEnabled")
                         .HasColumnType("bit");
 
-                    b.Property<string>("Username")
+                    b.Property<string>("UserName")
                         .HasMaxLength(256)
                         .HasColumnType("nvarchar(256)");
 
@@ -159,10 +159,10 @@ namespace Cinemate.Repository.Migrations
                     b.HasIndex("NormalizedEmail")
                         .HasDatabaseName("EmailIndex");
 
-                    b.HasIndex("NormalizedUsername")
+                    b.HasIndex("NormalizedUserName")
                         .IsUnique()
-                        .HasDatabaseName("UsernameIndex")
-                        .HasFilter("[NormalizedUsername] IS NOT NULL");
+                        .HasDatabaseName("UserNameIndex")
+                        .HasFilter("[NormalizedUserName] IS NOT NULL");
 
                     b.ToTable("AspNetUsers", (string)null);
 
@@ -176,44 +176,53 @@ namespace Cinemate.Repository.Migrations
                             ConcurrencyStamp = "f02edb7f-0447-42be-be44-c2de5a15e320",
                             Email = "admin@cinemate-system.com",
                             EmailConfirmed = true,
-                            Fullname = "Cinemate System",
+                            FullName = "Cinemate System",
                             Gender = "Male",
                             IsDisabled = false,
                             LockoutEnabled = false,
                             NormalizedEmail = "ADMIN@CINEMATE-SYSTEM.COM",
-                            NormalizedUsername = "ADMIN@CINEMATE-SYSTEM.COM",
+                            NormalizedUserName = "ADMIN@CINEMATE-SYSTEM.COM",
                             PasswordHash = "AQAAAAIAAYagAAAAEAR2V+bcDJAlzUiuTRqKkLj/Uv4ibKCWikvvMF1g75/iOokLhV1l9SedoJOqspT0mA==",
                             PhoneNumberConfirmed = false,
                             SecurityStamp = "55BF92C9EF0249CDA210D85D1A851BC9",
                             TwoFactorEnabled = false,
-                            Username = "admin@cinemate-system.com"
+                            UserName = "admin@cinemate-system.com"
                         });
                 });
 
             modelBuilder.Entity("Cinemate.Core.Entities.Cast", b =>
                 {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
+                    b.Property<int>("CastId")
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+                    b.Property<string>("Biography")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateOnly?>("BirthDay")
+                        .HasColumnType("date");
+
+                    b.Property<DateOnly?>("DeathDay")
+                        .HasColumnType("date");
 
                     b.Property<int?>("Gender")
                         .HasColumnType("int");
 
-                    b.Property<string>("name")
+                    b.Property<string>("KnownForDepartment")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("ProfilePath")
+                    b.Property<string>("Name")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("knownForDepartment")
+                    b.Property<string>("PlaceOfBirth")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<double?>("Popularity")
                         .HasColumnType("float");
 
-                    b.HasKey("Id");
+                    b.Property<string>("ProfilePath")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("CastId");
 
                     b.ToTable("Casts");
                 });
@@ -223,12 +232,18 @@ namespace Cinemate.Repository.Migrations
                     b.Property<int>("CastId")
                         .HasColumnType("int");
 
-                    b.Property<int>("Tmdb_Id")
+                    b.Property<int>("TmdbId")
                         .HasColumnType("int");
 
-                    b.HasKey("CastId", "Tmdb_Id");
+                    b.Property<string>("Extra")
+                        .HasColumnType("nvarchar(max)");
 
-                    b.HasIndex("Tmdb_Id");
+                    b.Property<string>("Role")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("CastId", "TmdbId");
+
+                    b.HasIndex("TmdbId");
 
                     b.ToTable("CastMovie");
                 });
@@ -236,12 +251,9 @@ namespace Cinemate.Repository.Migrations
             modelBuilder.Entity("Cinemate.Core.Entities.Genre", b =>
                 {
                     b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("name")
+                    b.Property<string>("Name")
                         .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
@@ -251,14 +263,11 @@ namespace Cinemate.Repository.Migrations
 
             modelBuilder.Entity("Cinemate.Core.Entities.Movie", b =>
                 {
-                    b.Property<int>("MovieId")
-                        .ValueGeneratedOnAdd()
+                    b.Property<int>("TMDBId")
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MovieId"));
-
-                    b.Property<bool?>("Adult")
-                        .HasColumnType("bit");
+                    b.Property<string>("BackdropPath")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<double?>("Budget")
                         .HasColumnType("float");
@@ -266,36 +275,69 @@ namespace Cinemate.Repository.Migrations
                     b.Property<int>("IMDBId")
                         .HasColumnType("int");
 
+                    b.Property<string>("IMDBRating")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Language")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("MPA")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("MetacriticRating")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("Overview")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<double?>("Popularity")
                         .HasColumnType("float");
 
-                    b.Property<string>("Poster_path")
+                    b.Property<string>("PosterPath")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<DateOnly?>("Release_date")
+                    b.Property<DateOnly?>("ReleaseDate")
                         .HasColumnType("date");
 
                     b.Property<double?>("Revenue")
                         .HasColumnType("float");
 
+                    b.Property<string>("RottenTomatoesRating")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<int?>("Runtime")
                         .HasColumnType("int");
 
-                    b.Property<int>("TMDBId")
-                        .HasColumnType("int");
+                    b.Property<string>("Status")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Tagline")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Title")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("Trailer_path")
+                    b.Property<string>("Trailer")
                         .HasColumnType("nvarchar(max)");
 
-                    b.HasKey("MovieId");
+                    b.HasKey("TMDBId");
 
                     b.ToTable("Movies");
+                });
+
+            modelBuilder.Entity("Cinemate.Core.Entities.MovieGenre", b =>
+                {
+                    b.Property<int>("TMDBId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("GenreId")
+                        .HasColumnType("int");
+
+                    b.HasKey("TMDBId", "GenreId");
+
+                    b.HasIndex("GenreId");
+
+                    b.ToTable("MovieGenres");
                 });
 
             modelBuilder.Entity("Cinemate.Core.Entities.UserCastFollow", b =>
@@ -432,21 +474,6 @@ namespace Cinemate.Repository.Migrations
                     b.ToTable("UserWatchedMovies");
                 });
 
-            modelBuilder.Entity("GenreMovie", b =>
-                {
-                    b.Property<int>("GenresId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("MoviesMovieId")
-                        .HasColumnType("int");
-
-                    b.HasKey("GenresId", "MoviesMovieId");
-
-                    b.HasIndex("MoviesMovieId");
-
-                    b.ToTable("GenreMovie");
-                });
-
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
                 {
                     b.Property<int>("Id")
@@ -505,7 +532,7 @@ namespace Cinemate.Repository.Migrations
                     b.Property<string>("ProviderKey")
                         .HasColumnType("nvarchar(450)");
 
-                    b.Property<string>("ProviderDisplayname")
+                    b.Property<string>("ProviderDisplayName")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("UserId")
@@ -549,13 +576,13 @@ namespace Cinemate.Repository.Migrations
                     b.Property<string>("LoginProvider")
                         .HasColumnType("nvarchar(450)");
 
-                    b.Property<string>("name")
+                    b.Property<string>("Name")
                         .HasColumnType("nvarchar(450)");
 
                     b.Property<string>("Value")
                         .HasColumnType("nvarchar(max)");
 
-                    b.HasKey("UserId", "LoginProvider", "name");
+                    b.HasKey("UserId", "LoginProvider", "Name");
 
                     b.ToTable("AspNetUserTokens", (string)null);
                 });
@@ -627,11 +654,30 @@ namespace Cinemate.Repository.Migrations
 
                     b.HasOne("Cinemate.Core.Entities.Movie", "Movie")
                         .WithMany("CastMovies")
-                        .HasForeignKey("Tmdb_Id")
+                        .HasForeignKey("TmdbId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("Cast");
+
+                    b.Navigation("Movie");
+                });
+
+            modelBuilder.Entity("Cinemate.Core.Entities.MovieGenre", b =>
+                {
+                    b.HasOne("Cinemate.Core.Entities.Genre", "Genre")
+                        .WithMany("MovieGenres")
+                        .HasForeignKey("GenreId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Cinemate.Core.Entities.Movie", "Movie")
+                        .WithMany("MovieGenres")
+                        .HasForeignKey("TMDBId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Genre");
 
                     b.Navigation("Movie");
                 });
@@ -750,21 +796,6 @@ namespace Cinemate.Repository.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("GenreMovie", b =>
-                {
-                    b.HasOne("Cinemate.Core.Entities.Genre", null)
-                        .WithMany()
-                        .HasForeignKey("GenresId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("Cinemate.Core.Entities.Movie", null)
-                        .WithMany()
-                        .HasForeignKey("MoviesMovieId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
                 {
                     b.HasOne("Cinemate.Core.Entities.Auth.ApplicationRole", null)
@@ -861,9 +892,16 @@ namespace Cinemate.Repository.Migrations
                     b.Navigation("FollowedByUsers");
                 });
 
+            modelBuilder.Entity("Cinemate.Core.Entities.Genre", b =>
+                {
+                    b.Navigation("MovieGenres");
+                });
+
             modelBuilder.Entity("Cinemate.Core.Entities.Movie", b =>
                 {
                     b.Navigation("CastMovies");
+
+                    b.Navigation("MovieGenres");
 
                     b.Navigation("UserLikes");
 
