@@ -9,8 +9,10 @@ namespace Cinemate.Core.Entities
     public class CastMovie
     {
 		public int CastId { get; set; }
-		public int Tmdb_Id { get; set; }
-		public Movie Movie { get; set; } = null!;
+		public int TmdbId { get; set; }
+		public string? Role { get; set; }
+		public string? Extra { get; set; }
+        public Movie Movie { get; set; } = null!;
 		public Cast Cast { get; set; } = null!;
 	}
 }

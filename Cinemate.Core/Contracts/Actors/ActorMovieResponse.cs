@@ -11,7 +11,7 @@ namespace Cinemate.Core.Contracts.Actors
         int Id,
         string Name,
 		string? ProfilePath,
-		string? KnownForDepartment,
-        string? Character
+		string? Role,
+        String? Extra
 	);
 }

@@ -8,9 +8,10 @@ namespace Cinemate.Core.Contracts.Movies
 {
     public record MoviesTopTenResponse
     (
-		int MovieId,
 		int TMDBId,
 		string? Title,
-		string? Poster_path
-	);
+		string? PosterPath,
+        string? IMDBRating,
+        string? MPA
+    );
 }

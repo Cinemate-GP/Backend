@@ -10,15 +10,21 @@ namespace Cinemate.Core.Contracts.Movies
 {
 	public record MovieDetailsResponse
 	(
-		int MovieId,
 		int TMDBId,
-		string? title,
+		string? Title,
 		string? Overview,
-		string? Poster_path,
-		int? Runtime,
-		DateOnly? Release_date,
-		string? Trailer_path,
-		IEnumerable<ActorMovieResponse> Actors,
+        string? Tagline,
+        string? PosterPath,
+        string? BackdropPath,
+        string? Language,
+        int? Runtime,
+		DateOnly? ReleaseDate,
+		string? Trailer,
+        string? IMDBRating,
+        string? RottenTomatoesRating,
+        string? MetacriticRating,
+        string? MPA,
+        IEnumerable<ActorMovieResponse> Actors,
 		IEnumerable<GenresDetails> GenresDetails
 	);
 }

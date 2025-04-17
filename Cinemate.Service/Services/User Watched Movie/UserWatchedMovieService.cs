@@ -91,7 +91,7 @@ namespace Cinemate.Service.Services.User_Watched_Movie
                            MovieId = ul.MovieId,
                            Title = ul.Movie.Title,
                            TMDBId = ul.Movie.TMDBId,
-                           Poster_path = ul.Movie.Poster_path,
+                           Poster_path = ul.Movie.PosterPath,
                            FullName = ul.User.FullName,
                            ProfilePic = ul.User.ProfilePic
                        })

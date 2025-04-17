@@ -40,11 +40,12 @@ namespace Cinemate.Service.Services.Movies
 				.OrderByDescending(m => m.Popularity)
 				.Take(10)
 				.Select(m => new MoviesTopTenResponse(
-					m.MovieId,
 					m.TMDBId,
 					m.Title,
-					m.Poster_path
-				)).ToList();
+					m.PosterPath,
+					m.IMDBRating,
+                    m.MPA
+                )).ToList();
 
 			return response;
 		}
@@ -62,12 +63,12 @@ namespace Cinemate.Service.Services.Movies
 
 			var actors = movie.CastMovies
 				.Select(cm => new ActorMovieResponse(
-					cm.Cast.Id,
+					cm.Cast.CastId,
 					cm.Cast.Name ?? string.Empty,
 					cm.Cast.ProfilePath,
-					cm.Cast.KnownForDepartment,
-					cm.Cast.Character
-				)).ToList();
+					cm.Role,
+					cm.Extra
+                )).ToList();
 
 			var genres = movie.MovieGenres
 				.Select(mg => new GenresDetails(
@@ -76,15 +77,21 @@ namespace Cinemate.Service.Services.Movies
 				)).ToList();
 
 			var response = new MovieDetailsResponse(
-				movie.MovieId,
 				movie.TMDBId,
 				movie.Title,
 				movie.Overview,
-				movie.Poster_path,
-				movie.Runtime,
-				movie.Release_date,
-				movie.Trailer_path,
-				actors,  
+				movie.Tagline,
+                movie.PosterPath,
+				movie.BackdropPath,
+                movie.Language,
+                movie.Runtime,
+				movie.ReleaseDate,
+				movie.Trailer,
+                movie.IMDBRating,
+                movie.RottenTomatoesRating,
+                movie.MetacriticRating,
+                movie.MPA,
+                actors,  
 				genres
 			);
 
@@ -95,16 +102,16 @@ namespace Cinemate.Service.Services.Movies
 			var movieRepository = _unitOfWork.Repository<Movie>();
 			var allMovies = await movieRepository.GetAllAsync();
 			var top100Movies = allMovies
-				.Where(m => m.Popularity != null)
+				.Where(m => m.Popularity != null) // TODO
 				.OrderByDescending(m => m.Popularity)
 				.Take(100)
 				.ToList();
 
-			var availableMovies = top100Movies.Where(m => !_returnedMovieIds.Contains(m.MovieId)).ToList();
+			var availableMovies = top100Movies.Where(m => !_returnedMovieIds.Contains(m.TMDBId)).ToList();
 			var movieIds = availableMovies
 				.OrderBy(_ => Guid.NewGuid())
 				.Take(3)
-				.Select(m => m.MovieId)
+				.Select(m => m.TMDBId)
 				.ToList();
 
 			foreach (var id in movieIds)
@@ -113,21 +120,22 @@ namespace Cinemate.Service.Services.Movies
 			var randomMovies = await _context.Movies
 				.Include(m => m.MovieGenres)
 				.ThenInclude(mg => mg.Genre)
-				.Where(m => movieIds.Contains(m.MovieId))
+				.Where(m => movieIds.Contains(m.TMDBId))
 				.ToListAsync(cancellationToken);
 
 			return randomMovies.Select(m => new MovieDetailsRandomResponse(
-				m.MovieId,
 				m.TMDBId,
 				m.Title,
-				m.Overview,
-				m.Poster_path,
-				m.Runtime,
-				m.Release_date,
-				m.Trailer_path,
+				m.Tagline,
+				m.PosterPath,
+				m.BackdropPath,
+                m.IMDBRating,
+                m.Runtime,
+				m.ReleaseDate,
+				m.Trailer,
 				m.MovieGenres.Select(mg => new GenresDetails(
 					mg.Genre.Id,
-					mg.Genre.Name ?? string.Empty
+					mg.Genre.Name!
 				))
 			)).ToList();
 		}
@@ -136,8 +144,8 @@ namespace Cinemate.Service.Services.Movies
 			if (request == null || string.IsNullOrWhiteSpace(request.Genere))
 			{
 				var top100ByYear = await _context.Movies
-					.Where(m => m.Release_date != null)
-					.OrderByDescending(m => m.Release_date)
+					.Where(m => m.ReleaseDate != null)
+					.OrderByDescending(m => m.ReleaseDate)
 					.Take(100)
 					.ToListAsync(cancellationToken);
 
@@ -147,24 +155,25 @@ namespace Cinemate.Service.Services.Movies
 					.ToList();
 
 				return randomMovies.Select(m => new MoviesTopTenResponse(
-					m.MovieId,
 					m.TMDBId,
 					m.Title,
-					m.Poster_path
-				)).ToList();
+					m.PosterPath,
+					m.IMDBRating,
+                    m.MPA
+                )).ToList();
 			}
 			var genre = await _context.Genres
 				.FirstOrDefaultAsync(g => g.Name == request.Genere, cancellationToken);
 
 			var top50MoviesByYear = await _context.Movies
 				.Include(m => m.MovieGenres)
-				.Where(m => m.MovieGenres.Any(mg => mg.GenreId == genre.Id) && m.Release_date != null)
-				.OrderByDescending(m => m.Release_date)
+				.Where(m => m.MovieGenres.Any(mg => mg.GenreId == genre.Id ) && m.ReleaseDate != null)
+				.OrderByDescending(m => m.ReleaseDate)
 				.Take(50)
 				.ToListAsync(cancellationToken);
 
 			var availableMovies = top50MoviesByYear
-				.Where(m => !_returnedMovieIds.Contains(m.MovieId))
+				.Where(m => !_returnedMovieIds.Contains(m.TMDBId))
 				.ToList();
 
 			var selectedMovies = availableMovies
@@ -173,27 +182,28 @@ namespace Cinemate.Service.Services.Movies
 				.ToList();
 
 			foreach (var movie in selectedMovies)
-				_returnedMovieIds.Add(movie.MovieId);
+				_returnedMovieIds.Add(movie.TMDBId);
 
 			var response = selectedMovies.Select(m => new MoviesTopTenResponse(
-				m.MovieId,
 				m.TMDBId,
 				m.Title,
-				m.Poster_path
-			)).ToList();
+				m.PosterPath,
+                m.IMDBRating,
+                m.MPA
+            )).ToList();
 			return response;
 		}
 		public async Task<PaginatedList<MoviesTopTenResponse>> GetPaginatedMovieBasedAsync(RequestFilters request, CancellationToken cancellationToken = default)
 		{
 			var query = _context.Movies.AsQueryable();
 			if (!string.IsNullOrEmpty(request.SearchValue))
-				query = query.Where(m => m.Title.Contains(request.SearchValue));
+				query = query.Where(m => m.Title!.Contains(request.SearchValue));
 
 			if (!string.IsNullOrEmpty(request.Gener))
 				query = query.Where(m => m.MovieGenres.Any(mg => mg.Genre.Name == request.Gener));
 
 			if (!string.IsNullOrEmpty(request.Year))
-				query = query.Where(m => m.Release_date.HasValue && m.Release_date.Value.Year.ToString().Contains(request.Year));
+				query = query.Where(m => m.ReleaseDate.HasValue && m.ReleaseDate.Value.Year.ToString().Contains(request.Year));
 
 			query = request.SortDirection == SortDirection.Descending
 				? query.OrderByDescending(m => m.Popularity)
@@ -201,11 +211,12 @@ namespace Cinemate.Service.Services.Movies
 
 			var movies = query
 				   .Select(m => new MoviesTopTenResponse(
-					   m.MovieId,
 					   m.TMDBId,
 					   m.Title,
-					   m.Poster_path
-				   )).AsNoTracking();
+					   m.PosterPath,
+					   m.IMDBRating,
+					   m.MPA
+                   )).AsNoTracking();
 
 			var response = await PaginatedList<MoviesTopTenResponse>.CreateAsync(
 				movies,

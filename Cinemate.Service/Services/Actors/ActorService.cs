@@ -32,27 +32,34 @@ namespace Cinemate.Service.Services.Actors
 			var actor = await _context.Casts
 				.Include(a => a.CastMovies)
 				.ThenInclude(cm => cm.Movie)
-				.FirstOrDefaultAsync(a => a.Id == actorid, cancellationToken);
+				.FirstOrDefaultAsync(a => a.CastId == actorid, cancellationToken);
 
 			if (actor is null)
 				return Result.Failure<ActorDetailsResponse>(ActorErrors.ActorNotFound);
 
 			var movies = actor.CastMovies
-				.OrderByDescending(cm => cm.Movie.Release_date)
+				.OrderByDescending(cm => cm.Movie.ReleaseDate)
 				.Select(cm => new MoviesTopTenResponse(
-					cm.Movie.MovieId,
 					cm.Movie.TMDBId,
 					cm.Movie.Title ?? string.Empty,
-					cm.Movie.Poster_path
-				))
+					cm.Movie.PosterPath,
+                    cm.Movie.IMDBRating,
+                    cm.Movie.MPA
+                ))
 				.ToList();
 
 			var result = new ActorDetailsResponse(
-				actor.Id,
-				actor.Name ?? string.Empty,
-				actor.ProfilePath,
-				movies
-			);
+				actor.CastId,
+                actor.Name,
+                actor.Biography,
+                actor.BirthDay,
+                actor.DeathDay,
+                actor.ProfilePath,
+                actor.PlaceOfBirth,
+                actor.Popularity,
+                actor.KnownForDepartment,
+                movies
+            );
 
 			return Result.Success(result);
 		}

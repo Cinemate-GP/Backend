@@ -13,8 +13,8 @@ namespace Cinemate.Repository.Data.Configuration
 	{
 		public void Configure(EntityTypeBuilder<Cast> builder)
 		{
-			builder.HasKey(c => c.Id);
-			builder.Property(c => c.Id).ValueGeneratedNever();
+			builder.HasKey(c => c.CastId);
+			builder.Property(c => c.CastId).ValueGeneratedNever();
 		}
 	}
 }

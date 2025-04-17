@@ -14,7 +14,7 @@ namespace Cinemate.Repository.Data.Configuration
 	{
 		public void Configure(EntityTypeBuilder<CastMovie> builder)
 		{
-			builder.HasKey(x => new { x.CastId, x.Tmdb_Id });
+			builder.HasKey(x => new { x.CastId, x.TmdbId });
 			builder.HasOne(x => x.Cast)
 					.WithMany(x => x.CastMovies)
 					.HasForeignKey(x => x.CastId)
@@ -22,7 +22,7 @@ namespace Cinemate.Repository.Data.Configuration
 
 			builder.HasOne(x => x.Movie)
 					.WithMany(x => x.CastMovies)
-					.HasForeignKey(x => x.Tmdb_Id)
+					.HasForeignKey(x => x.TmdbId)
 					.OnDelete(DeleteBehavior.Restrict);
 		}
 	}
