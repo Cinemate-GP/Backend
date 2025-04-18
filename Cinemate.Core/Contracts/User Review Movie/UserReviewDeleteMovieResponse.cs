@@ -10,7 +10,7 @@ namespace Cinemate.Core.Contracts.User_Review_Movie
     {
         public int ReviewId { get; init; }
         public string UserId { get; init; }
-        public int MovieId { get; init; }
+        public int TMDBId { get; init; }
 
     }
 }

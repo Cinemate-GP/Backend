@@ -18,7 +18,7 @@ namespace Cinemate.Core.Contracts.User_Review_Movie
                 .NotEmpty()
                 .GreaterThan(0);
 
-            RuleFor(x => x.MovieId)
+            RuleFor(x => x.TMDBId)
                 .NotEmpty()
                 .GreaterThan(0);
            

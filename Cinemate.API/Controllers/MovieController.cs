@@ -22,6 +22,12 @@ namespace Cinemate.API.Controllers
 			var result = await _movieService.GetMovieTopTenAsync(cancellationToken);
 			return Ok(result);
 		}
+		[HttpGet("top-rated")]
+		public async Task<IActionResult> GetTopTenRatedMovies(CancellationToken cancellationToken)
+		{
+			var result = await _movieService.GetMovieTopTenRatedAsync(cancellationToken);
+			return Ok(result);
+		}
 		[HttpGet("{tmdbid}")]
 		public async Task<IActionResult> GetMovieDetails(int tmdbid, CancellationToken cancellationToken)
 		{
@@ -44,6 +50,12 @@ namespace Cinemate.API.Controllers
 		public async Task<IActionResult> GetPaginated([FromQuery] RequestFilters request, CancellationToken cancellationToken)
 		{
 			var result = await _movieService.GetPaginatedMovieBasedAsync(request, cancellationToken);
+			return Ok(result);
+		}
+		[HttpGet("search")]
+		public async Task<IActionResult> GetSearch([FromQuery] RequestSearch request, CancellationToken cancellationToken)
+		{
+			var result = await _movieService.GetSearchForMovieActorUsersAsync(request, cancellationToken);
 			return Ok(result);
 		}
 	}

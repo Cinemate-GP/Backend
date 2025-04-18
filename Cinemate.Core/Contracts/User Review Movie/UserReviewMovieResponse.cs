@@ -9,7 +9,7 @@ namespace Cinemate.Core.Contracts.User_Review_Movie
     public record UserReviewMovieResponse
     {
         public string UserId { get; init; } 
-        public int MovieId { get; init; }
+        public int TMDBId { get; init; }
         public string ReviewBody { get; init; }
 
     }
