@@ -13,6 +13,7 @@ namespace Cinemate.Core.Contracts.Common
 		public string? SearchValue { get; init; }
 		public string? Gener { get; init; }
 		public string? Year { get; init; }
+		public string? MPA { get; init; }
 		public SortDirection SortDirection { get; init; } = SortDirection.Ascending;
 	}
 	public enum SortDirection

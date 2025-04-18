@@ -44,8 +44,26 @@ namespace Cinemate.Service.Services.Movies
 					m.Title,
 					m.PosterPath,
 					m.IMDBRating,
-                    m.MPA
-                )).ToList();
+					m.MPA
+				)).ToList();
+
+			return response;
+		}
+		public async Task<IEnumerable<MoviesTopTenResponse>> GetMovieTopTenRatedAsync(CancellationToken cancellationToken = default)
+		{
+			var movieRepository = _unitOfWork.Repository<Movie>();
+			var allMovies = await movieRepository.GetAllAsync();
+			var response = allMovies
+				.Where(m => !string.IsNullOrEmpty(m.IMDBRating) && ((m.PosterPath != null) || (m.Trailer != null)))
+				.OrderByDescending(m => ParseImdbRating(m.IMDBRating))
+				.Take(10)
+				.Select(m => new MoviesTopTenResponse(
+					m.TMDBId,
+					m.Title,
+					m.PosterPath,
+					m.IMDBRating,
+					m.MPA
+				)).ToList();
 
 			return response;
 		}
@@ -68,7 +86,19 @@ namespace Cinemate.Service.Services.Movies
 					cm.Cast.ProfilePath,
 					cm.Role,
 					cm.Extra
-                )).ToList();
+				)).ToList();
+
+			var reviews = await _context.UserReviewMovies
+				.Include(r => r.User)
+				.Where(r => r.TMDBId == tmdbid)
+				.Select(r => new MovieReviewResponse(
+					r.UserId,
+					r.TMDBId,
+					r.User.FullName,
+					r.User.ProfilePic,
+					r.ReviewId,
+					r.ReviewBody
+				)).ToListAsync(cancellationToken);
 
 			var genres = movie.MovieGenres
 				.Select(mg => new GenresDetails(
@@ -81,18 +111,19 @@ namespace Cinemate.Service.Services.Movies
 				movie.Title,
 				movie.Overview,
 				movie.Tagline,
-                movie.PosterPath,
+				movie.PosterPath,
 				movie.BackdropPath,
-                movie.Language,
-                movie.Runtime,
+				movie.Language,
+				movie.Runtime,
 				movie.ReleaseDate,
 				movie.Trailer,
-                movie.IMDBRating,
-                movie.RottenTomatoesRating,
-                movie.MetacriticRating,
-                movie.MPA,
-                actors,  
-				genres
+				movie.IMDBRating,
+				movie.RottenTomatoesRating,
+				movie.MetacriticRating,
+				movie.MPA,
+				actors,
+				genres,
+				reviews
 			);
 
 			return Result.Success(response);
@@ -102,7 +133,7 @@ namespace Cinemate.Service.Services.Movies
 			var movieRepository = _unitOfWork.Repository<Movie>();
 			var allMovies = await movieRepository.GetAllAsync();
 			var top100Movies = allMovies
-				.Where(m => m.Popularity != null) // TODO
+				.Where(m => m.Popularity != null && ((m.PosterPath != null) || (m.Trailer != null)))
 				.OrderByDescending(m => m.Popularity)
 				.Take(100)
 				.ToList();
@@ -129,9 +160,10 @@ namespace Cinemate.Service.Services.Movies
 				m.Tagline,
 				m.PosterPath,
 				m.BackdropPath,
-                m.IMDBRating,
-                m.Runtime,
+				m.IMDBRating,
+				m.Runtime,
 				m.ReleaseDate,
+				m.Language,
 				m.Trailer,
 				m.MovieGenres.Select(mg => new GenresDetails(
 					mg.Genre.Id,
@@ -159,15 +191,15 @@ namespace Cinemate.Service.Services.Movies
 					m.Title,
 					m.PosterPath,
 					m.IMDBRating,
-                    m.MPA
-                )).ToList();
+					m.MPA
+				)).ToList();
 			}
 			var genre = await _context.Genres
 				.FirstOrDefaultAsync(g => g.Name == request.Genere, cancellationToken);
 
 			var top50MoviesByYear = await _context.Movies
 				.Include(m => m.MovieGenres)
-				.Where(m => m.MovieGenres.Any(mg => mg.GenreId == genre.Id ) && m.ReleaseDate != null)
+				.Where(m => m.MovieGenres.Any(mg => mg.GenreId == genre.Id) && m.ReleaseDate != null)
 				.OrderByDescending(m => m.ReleaseDate)
 				.Take(50)
 				.ToListAsync(cancellationToken);
@@ -188,9 +220,9 @@ namespace Cinemate.Service.Services.Movies
 				m.TMDBId,
 				m.Title,
 				m.PosterPath,
-                m.IMDBRating,
-                m.MPA
-            )).ToList();
+				m.IMDBRating,
+				m.MPA
+			)).ToList();
 			return response;
 		}
 		public async Task<PaginatedList<MoviesTopTenResponse>> GetPaginatedMovieBasedAsync(RequestFilters request, CancellationToken cancellationToken = default)
@@ -198,6 +230,9 @@ namespace Cinemate.Service.Services.Movies
 			var query = _context.Movies.AsQueryable();
 			if (!string.IsNullOrEmpty(request.SearchValue))
 				query = query.Where(m => m.Title!.Contains(request.SearchValue));
+
+			if (!string.IsNullOrEmpty(request.MPA))
+				query = query.Where(m => m.MPA!.Contains(request.MPA));
 
 			if (!string.IsNullOrEmpty(request.Gener))
 				query = query.Where(m => m.MovieGenres.Any(mg => mg.Genre.Name == request.Gener));
@@ -216,7 +251,7 @@ namespace Cinemate.Service.Services.Movies
 					   m.PosterPath,
 					   m.IMDBRating,
 					   m.MPA
-                   )).AsNoTracking();
+				   )).AsNoTracking();
 
 			var response = await PaginatedList<MoviesTopTenResponse>.CreateAsync(
 				movies,
@@ -225,6 +260,63 @@ namespace Cinemate.Service.Services.Movies
 				cancellationToken
 			);
 			return response;
+		}
+		public async Task<Result<IEnumerable<SearchResponse>>> GetSearchForMovieActorUsersAsync(RequestSearch request, CancellationToken cancellationToken = default)
+		{
+			if (string.IsNullOrWhiteSpace(request.SearchValue))
+				return Result.Success<IEnumerable<SearchResponse>>(new List<SearchResponse>());
+
+			var searchTerm = request.SearchValue.Trim().ToLower();
+			var movieResults = await _context.Movies
+				.Where(m => m.Title != null && m.Title.ToLower().Contains(searchTerm) && ((m.PosterPath != null) || (m.Trailer != null)))
+				.Select(m => new SearchResponse(
+					m.TMDBId.ToString(), 
+					m.Title!,
+					m.PosterPath ?? string.Empty,
+					"Movie"
+				)).AsNoTracking().ToListAsync(cancellationToken);
+
+			var actorResults = await _context.Casts
+				.Where(c => c.Name != null && c.Name.ToLower().Contains(searchTerm))
+				.Select(c => new SearchResponse(
+					c.CastId.ToString(), 
+					c.Name!,
+					c.ProfilePath ?? string.Empty,
+					"Actor" 
+				)).AsNoTracking().ToListAsync(cancellationToken);
+
+			var userResults = await _context.Users
+				.Where(u => u.FullName.ToLower().Contains(searchTerm) && !u.IsDisabled)
+				.Select(u => new SearchResponse(
+					u.Id,
+					u.FullName,
+					u.ProfilePic ?? string.Empty,
+					"User" 
+				)).AsNoTracking().ToListAsync(cancellationToken);
+
+			var combinedResults = movieResults
+				.Concat(actorResults)
+				.Concat(userResults)
+				.ToList();
+
+			return Result.Success<IEnumerable<SearchResponse>>(combinedResults);
+		}
+		private static double ParseImdbRating(string? rating)
+		{
+			if (string.IsNullOrEmpty(rating))
+				return 0;
+
+			var slashIndex = rating.IndexOf('/');
+			if (slashIndex > 0)
+			{
+				var ratingValue = rating.Substring(0, slashIndex);
+				if (double.TryParse(ratingValue, System.Globalization.NumberStyles.AllowDecimalPoint,
+					System.Globalization.CultureInfo.InvariantCulture, out double result))
+				{
+					return result;
+				}
+			}
+			return 0;
 		}
 	}
 }

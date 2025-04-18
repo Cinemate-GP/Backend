@@ -18,6 +18,7 @@ namespace Cinemate.Core.Contracts.Movies
 		string? IMDBRating,
         int? Runtime,
 		DateOnly? ReleasDate,
+		string? Language,
 		string? Trailer,
 		IEnumerable<GenresDetails> GenresDetails
 	);

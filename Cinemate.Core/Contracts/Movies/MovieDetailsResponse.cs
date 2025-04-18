@@ -25,6 +25,7 @@ namespace Cinemate.Core.Contracts.Movies
         string? MetacriticRating,
         string? MPA,
         IEnumerable<ActorMovieResponse> Actors,
-		IEnumerable<GenresDetails> GenresDetails
+		IEnumerable<GenresDetails> GenresDetails,
+		IEnumerable<MovieReviewResponse> MovieReviews
 	);
 }
