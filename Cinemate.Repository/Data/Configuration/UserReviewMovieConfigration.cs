@@ -14,7 +14,7 @@ namespace Cinemate.Repository.Data.Configuration
         public void Configure(EntityTypeBuilder<UserReviewMovie> builder)
         {
             // i have 3 primary keys in my table two of them are foreign keys and one is a normal key
-            builder.HasKey(urm => new { urm.UserId, urm.MovieId, urm.ReviewId });
+            builder.HasKey(urm => new { urm.UserId, urm.TMDBId, urm.ReviewId });
 
             // make identity column for review id
             builder.Property(urm => urm.ReviewId)
@@ -26,7 +26,7 @@ namespace Cinemate.Repository.Data.Configuration
 
             builder.HasOne(urm => urm.Movie)
                 .WithMany(m => m.UserReviews)
-                .HasForeignKey(urm => urm.MovieId);
+                .HasForeignKey(urm => urm.TMDBId);
 
             builder.Property(urm => urm.ReviewBody).HasMaxLength(512);
 

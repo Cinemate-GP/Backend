@@ -39,7 +39,7 @@ namespace Cinemate.Service.Services.User_Review_Movie
                 var entity = new UserReviewMovie
                 {
                     UserId = userReviewMovieResponse.UserId,
-                    MovieId = userReviewMovieResponse.MovieId,
+                    TMDBId = userReviewMovieResponse.TMDBId,
                     ReviewedOn = DateTime.UtcNow,
                     ReviewBody = userReviewMovieResponse.ReviewBody
                 };
@@ -64,7 +64,7 @@ namespace Cinemate.Service.Services.User_Review_Movie
                 var review = Reviewes
                              .FirstOrDefault(l =>
                             l.ReviewId == response.ReviewId &&
-                            l.MovieId == response.MovieId &&
+                            l.TMDBId == response.TMDBId &&
                             l.UserId == response.UserId);
                 if (review == null)
                     return OperationResult.Failure("Movie Reviewed not found.");
@@ -89,7 +89,7 @@ namespace Cinemate.Service.Services.User_Review_Movie
                         .Select(ul => new UserReviewMovieResponseBack
         {
                             UserId = ul.UserId,
-                            MovieId = ul.MovieId,
+                            MovieId = ul.TMDBId,
                             ReviewBody = ul.ReviewBody,
                             Title = ul.Movie.Title,
                             TMDBId = ul.Movie.TMDBId,
