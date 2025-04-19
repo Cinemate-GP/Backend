@@ -9,7 +9,6 @@ namespace Cinemate.Core.Contracts.User_Watched_Movie
     public record UserWatchedMovieResponseBack
     {
         public string UserId { get; init; }
-        public int MovieId { get; init; }
         public string Title { get; init; }
         public int TMDBId { get; init; }
         public string? Poster_path { get; init; }

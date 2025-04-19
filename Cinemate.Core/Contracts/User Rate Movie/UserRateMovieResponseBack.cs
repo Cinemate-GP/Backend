@@ -9,7 +9,6 @@ namespace Cinemate.Core.Contracts.User_Rate_Movie
     public record UserRateMovieResponseBack
     {
         public string UserId { get; init; } = string.Empty;
-        public int MovieId { get; init; }
         public int? Stars { get; init; } = 0;
         public string Title { get; init; }
         public int TMDBId { get; init; }

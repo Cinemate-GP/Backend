@@ -70,7 +70,7 @@ namespace Cinemate.Service.Services.Authentication
 
 				await _userManager.UpdateAsync(user);
 
-				var response = new AuthResponse(user.Id, user.Email, user.FullName, token, expiresIn, refreshToken, refreshTokenExpiration);
+				var response = new AuthResponse(user.Id, user.Email, user.FullName,token, expiresIn, refreshToken,user.ProfilePic, refreshTokenExpiration);
 
 				return Result.Success(response);
 			}
@@ -113,7 +113,7 @@ namespace Cinemate.Service.Services.Authentication
 
 			await _userManager.UpdateAsync(user);
 
-			var response = new AuthResponse(user.Id, user.Email, user.FullName, newToken, expiresIn, newRefreshToken, refreshTokenExpiration);
+			var response = new AuthResponse(user.Id, user.Email, user.FullName, newToken, expiresIn, newRefreshToken,user.ProfilePic, refreshTokenExpiration);
 
 			return Result.Success(response);
 		}

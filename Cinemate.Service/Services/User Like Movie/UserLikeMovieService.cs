@@ -38,7 +38,7 @@ namespace Cinemate.Service.Services.User_Like_Movie
                 var entity = new UserLikeMovie
                 {
                     UserId = userId,
-                    MovieId = request.MovieId,
+                    TMDBId = request.TMDBId,
                     LikedOn = DateTime.UtcNow
                 };
 
@@ -64,7 +64,7 @@ namespace Cinemate.Service.Services.User_Like_Movie
 
                 // Filter likes by MovieId and UserId
                 var like = allLikes
-                            .FirstOrDefault(l => l.MovieId == response.MovieId && l.UserId ==response.UserId);
+                            .FirstOrDefault(l => l.TMDBId == response.TMDBId && l.UserId ==response.UserId);
 
                 if (like == null)
                     return OperationResult.Failure("Movie like not found.");
@@ -90,7 +90,6 @@ namespace Cinemate.Service.Services.User_Like_Movie
                         .Select(ul => new UserLikeMovieResponseBack
                         {
                           UserId = ul.UserId,
-                          MovieId = ul.MovieId,
                           Title = ul.Movie.Title,
                           TMDBId = ul.Movie.TMDBId,
                           Poster_path = ul.Movie.PosterPath,

@@ -13,6 +13,7 @@ namespace Cinemate.Core.Contracts.Authentication
          string Token,
 		 int ExpiresIn,
 		 string RefreshToken,
+		 string? ProfilePic,
 		 DateTime RefreshTokenExpiration
 	);
 }

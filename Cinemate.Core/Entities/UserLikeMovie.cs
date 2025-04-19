@@ -12,7 +12,7 @@ namespace Cinemate.Core.Entities
     public class UserLikeMovie
     {
         public string UserId { get; set; } = string.Empty;
-        public int MovieId { get; set; }
+        public int TMDBId { get; set; }
         public DateTime? LikedOn { get; set; } = DateTime.UtcNow;
 
         public ApplicationUser User { get; set; } = null!;

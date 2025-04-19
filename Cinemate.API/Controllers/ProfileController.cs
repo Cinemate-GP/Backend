@@ -36,11 +36,8 @@ namespace Cinemate.API.Controllers
         [HttpPut("UpdateAccount")]
         public async Task<IActionResult> UpdateAccount([FromForm] UpdateProfileRequest request, CancellationToken cancellationToken)
         {
-            var result = await _profileService.UpdateProfileAsync(request, cancellationToken);
-            if (!result.IsSuccess)
-                return BadRequest(result.Message);
-
-            return Ok(result.Message);
+            var updatedRequest = await _profileService.UpdateProfileAsync(request, cancellationToken);
+            return Ok(updatedRequest);
         }
 
         /// <summary>

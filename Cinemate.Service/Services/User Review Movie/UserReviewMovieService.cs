@@ -89,7 +89,6 @@ namespace Cinemate.Service.Services.User_Review_Movie
                         .Select(ul => new UserReviewMovieResponseBack
         {
                             UserId = ul.UserId,
-                            MovieId = ul.TMDBId,
                             ReviewBody = ul.ReviewBody,
                             Title = ul.Movie.Title,
                             TMDBId = ul.Movie.TMDBId,

@@ -46,7 +46,7 @@ namespace Cinemate.Service.Services.User_Rate_Movie
                 var entity = new UserRateMovie
                 {
                     UserId = userRateMovieResponse.UserId,
-                    MovieId = userRateMovieResponse.MovieId,
+                    TMDBId = userRateMovieResponse.TMDBId,
                     RatedOn = DateTime.UtcNow,
                     Stars = userRateMovieResponse.Stars
                 };
@@ -69,7 +69,7 @@ namespace Cinemate.Service.Services.User_Rate_Movie
                 var allRated = await _unitOfWork.Repository<UserRateMovie>().GetAllAsync();
 
                 var Rated = allRated
-                            .FirstOrDefault(l => l.MovieId == response.MovieId && l.UserId == response.UserId);
+                            .FirstOrDefault(l => l.TMDBId == response.TMDBId && l.UserId == response.UserId);
 
                 if (Rated == null)
                     return OperationResult.Failure("Movie Rate not found.");
@@ -94,7 +94,6 @@ namespace Cinemate.Service.Services.User_Rate_Movie
                         .Select(ul => new UserRateMovieResponseBack
         {
                             UserId = ul.UserId,
-                            MovieId = ul.MovieId,
                             Stars=ul.Stars,
                             Title = ul.Movie.Title,
                             TMDBId = ul.Movie.TMDBId,
