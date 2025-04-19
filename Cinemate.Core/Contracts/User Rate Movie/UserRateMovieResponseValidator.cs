@@ -15,7 +15,7 @@ namespace Cinemate.Core.Contracts.User_Rate_Movie
             RuleFor(x => x.UserId)
                 .NotEmpty()
                 .Length(3, 100);
-            RuleFor(x => x.MovieId)
+            RuleFor(x => x.TMDBId)
                 .NotEmpty()
                 .GreaterThan(0);
             RuleFor(x => x.Stars)

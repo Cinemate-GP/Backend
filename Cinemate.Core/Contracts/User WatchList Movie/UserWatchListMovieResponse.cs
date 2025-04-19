@@ -9,7 +9,7 @@ namespace Cinemate.Core.Contracts.User_WatchList_Movie
     public record UserWatchListMovieResponse
     {
         public string UserId { get; init; }
-        public int MovieId { get; init; }
+        public int TMDBId { get; init; }
 
     }
 }

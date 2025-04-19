@@ -13,7 +13,7 @@ namespace Cinemate.Repository.Data.Configuration
     {
         public void Configure(EntityTypeBuilder<UserMovieWatchList> builder)
         {
-            builder.HasKey(umwl => new { umwl.UserId, umwl.MovieId });
+            builder.HasKey(umwl => new { umwl.UserId, umwl.TMDBId });
 
             builder.HasOne(umwl => umwl.User)
                 .WithMany(u => u.WatchListMovies)
@@ -21,7 +21,7 @@ namespace Cinemate.Repository.Data.Configuration
 
             builder.HasOne(umwl => umwl.Movie)
                 .WithMany(m => m.UserWatchLists)
-                .HasForeignKey(umwl => umwl.MovieId);
+                .HasForeignKey(umwl => umwl.TMDBId);
 
             builder.Property(umwl => umwl.AddedOn)
                 .HasDefaultValueSql("GETDATE()");

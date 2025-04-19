@@ -74,7 +74,8 @@ namespace Cinemate.Service.Services.Movies
 				.ThenInclude(cm => cm.Cast)
 				.Include(m => m.MovieGenres)
 				.ThenInclude(mg => mg.Genre)
-				.FirstOrDefaultAsync(m => m.TMDBId == tmdbid, cancellationToken);
+				.Include(m => m.UserReviews)
+                .FirstOrDefaultAsync(m => m.TMDBId == tmdbid, cancellationToken);
 
 			if (movie is null)
 				return Result.Failure<MovieDetailsResponse>(MovieErrors.MovieNotFound);

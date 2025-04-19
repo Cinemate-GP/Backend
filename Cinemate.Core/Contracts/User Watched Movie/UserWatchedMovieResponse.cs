@@ -13,7 +13,7 @@ namespace Cinemate.Core.Contracts.User_Watched_Movie
             get;
             init;
         }
-        public int MovieId { get; init; }
+        public int TMDBId { get; init; }
 
 
 

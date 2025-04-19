@@ -38,7 +38,7 @@ namespace Cinemate.Service.Services.User_Watchlist_Movie
                 var entity = new UserMovieWatchList
                 {
                     UserId = userId,
-                    MovieId = userWatchlistMovieResponse.MovieId,
+                    TMDBId = userWatchlistMovieResponse.TMDBId,
                     AddedOn = DateTime.UtcNow
                 };
                 
@@ -64,7 +64,7 @@ namespace Cinemate.Service.Services.User_Watchlist_Movie
 
                 // Filter likes by MovieId and UserId
                 var watchList = AllWatchlist
-                            .FirstOrDefault(l => l.MovieId == response.MovieId && l.UserId == response.UserId);
+                            .FirstOrDefault(l => l.TMDBId == response.TMDBId && l.UserId == response.UserId);
 
                 if (watchList == null)
                     return OperationResult.Failure("Movie in the watchlist not found.");
@@ -89,7 +89,6 @@ namespace Cinemate.Service.Services.User_Watchlist_Movie
                       .Select(ul => new UserWatchListMovieResponseBack
                       {
                           UserId = ul.UserId,
-                          MovieId = ul.MovieId,
                           Title = ul.Movie.Title,
                           TMDBId = ul.Movie.TMDBId,
                           Poster_path = ul.Movie.PosterPath,

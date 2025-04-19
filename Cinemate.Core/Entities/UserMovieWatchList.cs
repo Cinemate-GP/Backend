@@ -12,7 +12,7 @@ namespace Cinemate.Core.Entities
     {
         public string UserId { get; set; } = string.Empty;
 
-        public int MovieId { get; set; }
+        public int TMDBId { get; set; }
         public DateTime AddedOn { get; set; }
 
         public ApplicationUser User { get; set; } = null!;

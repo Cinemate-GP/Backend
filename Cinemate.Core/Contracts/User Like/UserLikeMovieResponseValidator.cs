@@ -14,7 +14,7 @@ namespace Cinemate.Core.Contracts.User_Like
             RuleFor(x => x.UserId)
                 .NotEmpty()
                 .Length(3, 100);
-            RuleFor(x => x.MovieId)
+            RuleFor(x => x.TMDBId)
                 .NotEmpty()
                 .GreaterThan(0);
 

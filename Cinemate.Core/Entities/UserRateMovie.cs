@@ -11,7 +11,7 @@ namespace Cinemate.Core.Entities
     public class UserRateMovie
     {
         public string UserId { get; set; } = string.Empty;
-        public int MovieId { get; set; }
+        public int TMDBId { get; set; }
         public int? Stars { get; set; }
 
         public DateTime RatedOn { get; set; } = DateTime.UtcNow;

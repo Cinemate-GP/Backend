@@ -39,7 +39,7 @@ namespace Cinemate.Service.Services.User_Watched_Movie
                 var entity = new UserWatchedMovie
                 {
                     UserId = userWatchedMovieResponse.UserId,
-                    MovieId = userWatchedMovieResponse.MovieId,
+                    TMDBId = userWatchedMovieResponse.TMDBId,
                     WatchedOn = DateTime.UtcNow
                 };
 
@@ -63,7 +63,7 @@ namespace Cinemate.Service.Services.User_Watched_Movie
 
                 // Filter Watched by MovieId and UserId
                 var Watched = allWatched
-                            .FirstOrDefault(l => l.MovieId == response.MovieId && l.UserId == response.UserId);
+                            .FirstOrDefault(l => l.TMDBId == response.TMDBId && l.UserId == response.UserId);
 
                 if (Watched == null)
                     return OperationResult.Failure("Movie Watched not found.");
@@ -88,7 +88,6 @@ namespace Cinemate.Service.Services.User_Watched_Movie
                        .Select(ul => new UserWatchedMovieResponseBack
         {
                            UserId = ul.UserId,
-                           MovieId = ul.MovieId,
                            Title = ul.Movie.Title,
                            TMDBId = ul.Movie.TMDBId,
                            Poster_path = ul.Movie.PosterPath,

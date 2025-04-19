@@ -124,19 +124,19 @@ namespace Cinemate.Service.Services.Profile
             return result.Where(r => r.UserId == userId);
         }
 
-        public async Task<OperationResult> UpdateProfileAsync(UpdateProfileRequest request, CancellationToken cancellationToken = default)
+        public async Task<UpdateProfileReauestBack> UpdateProfileAsync(UpdateProfileRequest request, CancellationToken cancellationToken = default)
         {
             var userId = _httpContextAccessor.HttpContext?.User?.FindFirstValue(ClaimTypes.NameIdentifier);
             if (string.IsNullOrEmpty(userId))
-                return OperationResult.Failure("User is not authenticated.");
+                throw new UnauthorizedAccessException("User is not authenticated.");
 
             var user = await _userManager.FindByIdAsync(userId);
             if (user is null)
-                return OperationResult.Failure("User not found.");
+                throw new KeyNotFoundException("User not found.");
 
             // Update full name
-            if(request.FullName != null)
-            user.FullName = request.FullName;
+            if (request.FullName != null)
+                user.FullName = request.FullName;
 
             if (!string.IsNullOrWhiteSpace(request.Email) && request.Email != user.Email)
             {
@@ -144,26 +144,27 @@ namespace Cinemate.Service.Services.Profile
                 if (!emailResult.Succeeded)
                 {
                     var errors = string.Join(", ", emailResult.Errors.Select(e => e.Description));
-                    return OperationResult.Failure($"Email update failed: {errors}");
+                    throw new InvalidOperationException($"Email update failed: {errors}");
                 }
             }
-                // Update password if provided
-                if (!string.IsNullOrWhiteSpace(request.Password))
+
+            // Update password if provided
+            if (!string.IsNullOrWhiteSpace(request.Password))
+            {
+                var token = await _userManager.GeneratePasswordResetTokenAsync(user);
+                var passwordResult = await _userManager.ResetPasswordAsync(user, token, request.Password);
+
+                if (!passwordResult.Succeeded)
                 {
-                    var token = await _userManager.GeneratePasswordResetTokenAsync(user);
-                    var passwordResult = await _userManager.ResetPasswordAsync(user, token, request.Password);
-
-                    if (!passwordResult.Succeeded)
-                    {
-                        var errors = string.Join(", ", passwordResult.Errors.Select(e => e.Description));
-                        return OperationResult.Failure($"Password update failed: {errors}");
-                    }
+                    var errors = string.Join(", ", passwordResult.Errors.Select(e => e.Description));
+                    throw new InvalidOperationException($"Password update failed: {errors}");
                 }
-            // Handle profile image upload if provided
+            }
 
+            // Handle profile image upload if provided
             if (request.Profile_Image != null && request.Profile_Image.Length > 0)
             {
-                 // Delete old profile image if it exists
+                // Delete old profile image if it exists
                 if (!string.IsNullOrEmpty(user.ProfilePic))
                 {
                     var oldFileName = Path.GetFileName(user.ProfilePic);
@@ -185,19 +186,24 @@ namespace Cinemate.Service.Services.Profile
                 user.ProfilePic = $"{baseUrl}{createdImageName}";
             }
 
-
             var updateResult = await _userManager.UpdateAsync(user);
-                if (!updateResult.Succeeded)
-                {
-                    var errors = string.Join(", ", updateResult.Errors.Select(e => e.Description));
-                    return OperationResult.Failure($"Profile update failed: {errors}");
-                }
-
-                return OperationResult.Success();
-
+            if (!updateResult.Succeeded)
+            {
+                var errors = string.Join(", ", updateResult.Errors.Select(e => e.Description));
+                throw new InvalidOperationException($"Profile update failed: {errors}");
             }
-        
-   
+            var Updated = new UpdateProfileReauestBack
+            {
+                Email = user.Email,
+                Profile_Image = user.ProfilePic,
+                FullName = user.FullName,
+
+            };
+
+            return Updated;
+        }
+
+
         private string GetBaseUrl(string subFolder)
         {
             var request = _httpContextAccessor.HttpContext?.Request;
