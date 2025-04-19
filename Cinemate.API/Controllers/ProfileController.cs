@@ -1,7 +1,10 @@
-﻿using Cinemate.Core.Contracts.Profile;
+﻿using Azure;
+using Cinemate.Core.Contracts.Profile;
+using Cinemate.Core.Extensions;
 using Cinemate.Core.Service_Contract;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Cinemate.Repository.Abstractions;
 
 namespace Cinemate.API.Controllers
 {
@@ -85,5 +88,11 @@ namespace Cinemate.API.Controllers
             var watchedMovies = await _profileService.GetAllWatchlist(cancellationToken);
             return Ok(watchedMovies);
         }
-    }
+		[HttpGet("feed")]
+		public async Task<IActionResult> GetUserFeed(CancellationToken cancellationToken)
+		{
+			var result = await _profileService.GetFeedForUserAsync(User.GetUserId()!, cancellationToken);
+			return result.IsSuccess ? Ok(result.Value) : result.ToProblem();
+		}
+	}
 }

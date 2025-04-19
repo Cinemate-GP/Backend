@@ -19,15 +19,11 @@ namespace Cinemate.Core.Service_Contract
     {
         Task<UpdateProfileReauestBack> UpdateProfileAsync(UpdateProfileRequest request, CancellationToken cancellationToken = default);
         Task<OperationResult> DeleteAsync(CancellationToken cancellationToken = default);
-
         Task<IEnumerable<UserWatchedMovieResponseBack>> GetAllMoviesWatched(CancellationToken cancellationToken = default);
         Task<IEnumerable<UserLikeMovieResponseBack>> GetAllMoviesLiked(CancellationToken cancellationToken = default);
         Task< IEnumerable<UserRateMovieResponseBack>> GetAllMoviesRated(CancellationToken cancellationToken = default);
         Task<IEnumerable<UserReviewMovieResponseBack>> GetAllMoviesReviews(CancellationToken cancellationToken = default);
         Task<IEnumerable<UserWatchListMovieResponseBack>> GetAllWatchlist(CancellationToken cancellationToken = default);
-
-
-
-
-    }
+        Task<Result<IEnumerable<FeedResponse>>> GetFeedForUserAsync(string id, CancellationToken cancellationToken = default);
+	}
 }

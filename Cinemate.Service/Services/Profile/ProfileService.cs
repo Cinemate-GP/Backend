@@ -10,8 +10,10 @@ using Cinemate.Core.Entities.Auth;
 using Cinemate.Core.Errors.ProfileError;
 using Cinemate.Core.Service_Contract;
 using Cinemate.Repository.Abstractions;
+using Cinemate.Repository.Data.Contexts;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -19,13 +21,13 @@ using System.Security.Claims;
 using System.Text;
 using System.Threading.Tasks;
 using TechTalk.SpecFlow.Analytics.UserId;
+using static Cinemate.Repository.Errors.Authentication.AuthenticationError;
 using IFileService = Cinemate.Core.Service_Contract.IFileService;
 
 namespace Cinemate.Service.Services.Profile
 {
     public class ProfileService : IProfileService
     {
-
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly SignInManager<ApplicationUser> _signInManager;
         private readonly IFileService _fileService;
@@ -35,11 +37,8 @@ namespace Cinemate.Service.Services.Profile
         private readonly IUserReviewMovieService userReviewMovieService;
         private readonly IUserWatchedMovieService userWatchedMovieService;
         private readonly IUserWatchlistMovieService userWatchlistService;
-
-
-        
-
-        public ProfileService(UserManager<ApplicationUser> userManager, SignInManager<ApplicationUser> signInManager, IFileService fileService, IHttpContextAccessor httpContextAccessor, IUserLikeMovieService userLikeMovieService, IUserRateMovieService userRateMovieService, IUserReviewMovieService userReviewMovieService, IUserWatchedMovieService userWatchedMovieService, IUserWatchlistMovieService userWatchlistService)
+		private readonly ApplicationDbContext _context;
+		public ProfileService(UserManager<ApplicationUser> userManager, SignInManager<ApplicationUser> signInManager, IFileService fileService, IHttpContextAccessor httpContextAccessor, IUserLikeMovieService userLikeMovieService, IUserRateMovieService userRateMovieService, IUserReviewMovieService userReviewMovieService, IUserWatchedMovieService userWatchedMovieService, IUserWatchlistMovieService userWatchlistService, ApplicationDbContext context)
         {
             _userManager = userManager;
             _signInManager = signInManager;
@@ -50,8 +49,8 @@ namespace Cinemate.Service.Services.Profile
             this.userReviewMovieService = userReviewMovieService;
             this.userWatchedMovieService = userWatchedMovieService;
             this.userWatchlistService = userWatchlistService;
-        }
-
+			_context = context;
+		}
         public async Task<OperationResult> DeleteAsync(CancellationToken cancellationToken = default)
         {
             var userId = _httpContextAccessor.HttpContext?.User?.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -202,9 +201,99 @@ namespace Cinemate.Service.Services.Profile
 
             return Updated;
         }
+		public async Task<Result<IEnumerable<FeedResponse>>> GetFeedForUserAsync(string id, CancellationToken cancellationToken = default)
+		{
+			var user = await _userManager.FindByIdAsync(id);
+			if (user is null)
+				return Result.Failure<IEnumerable<FeedResponse>>(UserErrors.UserNotFound);
 
+			var followedUserIds = await _context.UserFollows
+				.Where(f => f.UserId == id)
+				.Select(f => f.FollowId)
+				.ToListAsync(cancellationToken);
 
-        private string GetBaseUrl(string subFolder)
+			if (!followedUserIds.Any())
+				return Result.Success(Enumerable.Empty<FeedResponse>());
+
+			var likeActivities = await _context.UserLikeMovies
+				.Include(l => l.User)
+				.Include(l => l.Movie)
+				.Where(l => followedUserIds.Contains(l.UserId))
+				.OrderByDescending(l => l.LikedOn)
+				.Select(l => new FeedResponse(
+					l.UserId,
+					l.User.FullName,
+					l.User.ProfilePic,
+					"like",
+					l.TMDBId.ToString(),
+					l.Movie.PosterPath,
+					l.Movie.Title,
+					$"liked {l.Movie.Title}",
+					l.LikedOn
+				)).ToListAsync(cancellationToken);
+
+			var followActivities = await _context.UserFollows
+				.Include(f => f.Follower)
+				.Include(f => f.FollowedUser)
+				.Where(f => followedUserIds.Contains(f.UserId))
+				.OrderByDescending(f => f.FollowedOn)
+				.Select(f => new FeedResponse(
+					f.UserId,
+					f.Follower.FullName,
+					f.Follower.ProfilePic,
+					"follow",
+					f.FollowId,
+					null,
+					f.FollowedUser.FullName,
+					$"followed {f.FollowedUser.FullName}",
+					f.FollowedOn
+				)).ToListAsync(cancellationToken);
+
+			var reviewActivities = await _context.UserReviewMovies
+				.Include(r => r.User)
+				.Include(r => r.Movie)
+				.Where(r => followedUserIds.Contains(r.UserId))
+				.OrderByDescending(r => r.ReviewedOn)
+				.Select(r => new FeedResponse(
+					r.UserId,
+					r.User.FullName,
+					r.User.ProfilePic,
+					"review",
+					r.TMDBId.ToString(),
+					r.Movie.PosterPath,
+					r.Movie.Title,
+					r.ReviewBody,
+					r.ReviewedOn
+				))
+				.ToListAsync(cancellationToken);
+
+			var rateActivities = await _context.UserRateMovies
+				.Include(r => r.User)
+				.Include(r => r.Movie)
+				.Where(r => followedUserIds.Contains(r.UserId))
+				.OrderByDescending(r => r.RatedOn)
+				.Select(r => new FeedResponse(
+					r.UserId,
+					r.User.FullName,
+					r.User.ProfilePic,
+					"rate",
+					r.TMDBId.ToString(),
+					r.Movie.PosterPath,
+					r.Movie.Title,
+					$"rated {r.Movie.Title} with {r.Stars} stars",
+					r.RatedOn
+				))
+				.ToListAsync(cancellationToken);
+
+			var allActivities = likeActivities
+				.Concat(followActivities)
+				.Concat(reviewActivities)
+				.Concat(rateActivities)
+				.OrderByDescending(a => a.CreatedOn)
+				.ToList();
+			return Result.Success<IEnumerable<FeedResponse>>(allActivities);
+		}
+		private string GetBaseUrl(string subFolder)
         {
             var request = _httpContextAccessor.HttpContext?.Request;
             if (request == null)
@@ -212,8 +301,5 @@ namespace Cinemate.Service.Services.Profile
 
             return $"{request.Scheme}://{request.Host}/images/{subFolder}/";
         }
-
-
-
     }
 }
