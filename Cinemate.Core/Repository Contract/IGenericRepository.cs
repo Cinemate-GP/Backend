@@ -12,7 +12,7 @@ namespace Cinemate.Core.Repository_Contract
 
         IQueryable<TEntity> GetQueryable();
 
-        Task<TEntity> GetAsync(int keyValues);
+        Task<TEntity> GetAsync(string keyValues);
 
 
         Task AddAsync(TEntity entity);

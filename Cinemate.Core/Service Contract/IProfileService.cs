@@ -1,6 +1,8 @@
-﻿using Cinemate.Core.Contracts.Profile;
+﻿using Cinemate.Core.Contracts.Follow;
+using Cinemate.Core.Contracts.Profile;
 using Cinemate.Core.Contracts.User_Like;
 using Cinemate.Core.Contracts.User_Rate_Movie;
+using Cinemate.Core.Contracts.User_Recent_Activity;
 using Cinemate.Core.Contracts.User_Review_Movie;
 using Cinemate.Core.Contracts.User_Watched_Movie;
 using Cinemate.Core.Contracts.User_WatchList_Movie;
@@ -24,6 +26,11 @@ namespace Cinemate.Core.Service_Contract
         Task< IEnumerable<UserRateMovieResponseBack>> GetAllMoviesRated(CancellationToken cancellationToken = default);
         Task<IEnumerable<UserReviewMovieResponseBack>> GetAllMoviesReviews(CancellationToken cancellationToken = default);
         Task<IEnumerable<UserWatchListMovieResponseBack>> GetAllWatchlist(CancellationToken cancellationToken = default);
+        Task<Result<IEnumerable<UserRecentActivityResponse>>> GetAllRecentActivity(CancellationToken cancellationToken = default);
+        Task<IEnumerable<UserDataFollow>> GetAllFollowers(CancellationToken cancellationToken = default);
+        Task<IEnumerable<UserDataFollow>> GetAllFollowing(CancellationToken cancellationToken = default);
+        Task<int> CountFollowers(CancellationToken cancellationToken = default);
+        Task<int> CountFollowing(CancellationToken cancellationToken = default);
         Task<Result<IEnumerable<FeedResponse>>> GetFeedForUserAsync(string id, CancellationToken cancellationToken = default);
 	}
 }
