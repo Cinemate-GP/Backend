@@ -26,7 +26,7 @@ namespace Cinemate.Repository.Repositories
 
             return await _context.Set<TEntity>().ToListAsync();
         }
-        public async Task<TEntity> GetAsync(int keyValues)
+        public async Task<TEntity> GetAsync(string keyValues)
         {
             return await _context.Set<TEntity>().FindAsync(keyValues);
         }
