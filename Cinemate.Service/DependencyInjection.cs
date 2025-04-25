@@ -4,6 +4,7 @@ using Cinemate.Core.Service_Contract;
 using Cinemate.Service.Services.Actors;
 using Cinemate.Service.Services.Authentication;
 using Cinemate.Service.Services.File;
+using Cinemate.Service.Services.Follow_Service;
 using Cinemate.Service.Services.Movies;
 using Cinemate.Service.Services.Profile;
 using Cinemate.Service.Services.User_Like_Movie;
@@ -33,6 +34,7 @@ namespace Cinemate.Service
 			services.AddScoped<IUserRateMovieService, UserRateMovieService>();
 			services.AddScoped<IUserReviewMovieService, UserReviewMovieService>();
 			services.AddScoped<IUserWatchlistMovieService, UserWatchlistMovieService>();
+			services.AddScoped<IUserfollowService, UserFollowService>();
             services.AddBackgroundJobsConfig(configuration);
             return services;
 		}

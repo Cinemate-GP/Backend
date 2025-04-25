@@ -18,5 +18,4 @@ namespace Cinemate.Core.Contracts.User_Recent_Activity
         public string? Description { get; init; } = null;
         public DateTime? CreatedOn { get; init; }
     }
-
 }

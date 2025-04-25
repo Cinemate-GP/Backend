@@ -88,11 +88,43 @@ namespace Cinemate.API.Controllers
             var watchedMovies = await _profileService.GetAllWatchlist(cancellationToken);
             return Ok(watchedMovies);
         }
-		[HttpGet("feed")]
+        [HttpGet("GetFollowers")]
+        public async Task<IActionResult> GetFollowers(CancellationToken cancellationToken)
+        {
+            var Follwers = await _profileService.GetAllFollowers(cancellationToken);
+            return Ok(Follwers);
+        }
+        [HttpGet("GetFollowing")]
+        public async Task<IActionResult> GetFollowing(CancellationToken cancellationToken)
+        {
+            var Following = await _profileService.GetAllFollowing(cancellationToken);
+            return Ok(Following);
+        }
+        [HttpGet("CountFollowers")]
+        public async Task<IActionResult> CountFollowers(CancellationToken cancellationToken)
+        {
+            var Following = await _profileService.CountFollowers(cancellationToken);
+            return Ok(Following);
+        }
+        [HttpGet("CountFollowing")]
+        public async Task<IActionResult> CountFollowing(CancellationToken cancellationToken)
+        {
+            var Following = await _profileService.CountFollowing(cancellationToken);
+            return Ok(Following);
+        }
+
+        [HttpGet("feed")]
 		public async Task<IActionResult> GetUserFeed(CancellationToken cancellationToken)
 		{
 			var result = await _profileService.GetFeedForUserAsync(User.GetUserId()!, cancellationToken);
 			return result.IsSuccess ? Ok(result.Value) : result.ToProblem();
 		}
-	}
+        [HttpGet("RecentActivity")]
+        public async Task<IActionResult> GetRecentActivity(CancellationToken cancellationToken)
+        {
+            var result = await _profileService.GetAllRecentActivity( cancellationToken);
+            return result.IsSuccess ? Ok(result.Value) : result.ToProblem();
+        }
+
+    }
 }
