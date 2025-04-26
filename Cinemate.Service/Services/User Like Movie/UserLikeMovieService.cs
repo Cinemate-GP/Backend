@@ -1,4 +1,5 @@
 ﻿using Cinemate.Core.Contracts.User_Like;
+using Cinemate.Core.Contracts.User_WatchList_Movie;
 using Cinemate.Core.Entities;
 using Cinemate.Core.Errors.ProfileError;
 using Cinemate.Core.Repository_Contract;
@@ -35,7 +36,14 @@ namespace Cinemate.Service.Services.User_Like_Movie
                 if (string.IsNullOrEmpty(userId))
                     return OperationResult.Failure("Unauthorized user.");
 
-                var entity = new UserLikeMovie
+				var existingLikedItem = await _unitOfWork.Repository<UserLikeMovie>()
+				.GetQueryable()
+					.FirstOrDefaultAsync(w => w.UserId == userId && w.TMDBId == request.TMDBId, cancellationToken);
+
+				if (existingLikedItem is not null)
+					return OperationResult.Success("Movie already in Liked Movie before.");
+
+				var entity = new UserLikeMovie
                 {
                     UserId = userId,
                     TMDBId = request.TMDBId,

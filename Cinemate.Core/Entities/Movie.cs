@@ -28,6 +28,7 @@ namespace Cinemate.Core.Entities
         public string? MetacriticRating { get; set; }
         public string? MPA { get; set; }
         public double? Popularity { get; set; }
+        public bool IsDeleted { get; set; }
         public ICollection<MovieGenre> MovieGenres { get; set; } = new HashSet<MovieGenre>();
         public ICollection<UserReviewMovie> UserReviews { get; set; } = new HashSet<UserReviewMovie>();
         public ICollection<UserRateMovie> UserRates { get; set; } = new HashSet<UserRateMovie>();

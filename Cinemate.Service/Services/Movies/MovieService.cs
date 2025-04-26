@@ -36,7 +36,7 @@ namespace Cinemate.Service.Services.Movies
 			var movieRepository = _unitOfWork.Repository<Movie>();
 			var allMovies = await movieRepository.GetAllAsync();
 			var response = allMovies
-				.Where(m => m.Popularity != null)
+				.Where(m => m.Popularity != null && m.IsDeleted != true && m.PosterPath != null && m.Trailer != null)
 				.OrderByDescending(m => m.Popularity)
 				.Take(10)
 				.Select(m => new MoviesTopTenResponse(
@@ -54,7 +54,7 @@ namespace Cinemate.Service.Services.Movies
 			var movieRepository = _unitOfWork.Repository<Movie>();
 			var allMovies = await movieRepository.GetAllAsync();
 			var response = allMovies
-				.Where(m => !string.IsNullOrEmpty(m.IMDBRating) && ((m.PosterPath != null) || (m.Trailer != null)))
+				.Where(m => !string.IsNullOrEmpty(m.IMDBRating) && m.IsDeleted != true && m.PosterPath != null && m.Trailer != null)
 				.OrderByDescending(m => ParseImdbRating(m.IMDBRating))
 				.Take(10)
 				.Select(m => new MoviesTopTenResponse(
@@ -75,9 +75,9 @@ namespace Cinemate.Service.Services.Movies
 				.Include(m => m.MovieGenres)
 				.ThenInclude(mg => mg.Genre)
 				.Include(m => m.UserReviews)
-                .FirstOrDefaultAsync(m => m.TMDBId == tmdbid, cancellationToken);
+				.FirstOrDefaultAsync(m => m.TMDBId == tmdbid, cancellationToken);
 
-			if (movie is null)
+			if (movie is null || movie.IsDeleted == true)
 				return Result.Failure<MovieDetailsResponse>(MovieErrors.MovieNotFound);
 
 			var actors = movie.CastMovies
@@ -91,6 +91,7 @@ namespace Cinemate.Service.Services.Movies
 
 			var reviews = await _context.UserReviewMovies
 				.Include(r => r.User)
+				.ThenInclude(x => x.RatedMovies)
 				.Where(r => r.TMDBId == tmdbid)
 				.Select(r => new MovieReviewResponse(
 					r.UserId,
@@ -98,7 +99,9 @@ namespace Cinemate.Service.Services.Movies
 					r.User.FullName,
 					r.User.ProfilePic,
 					r.ReviewId,
-					r.ReviewBody
+					r.ReviewBody,
+					r.ReviewedOn,
+					r.User.RatedMovies.Any(rm => rm.TMDBId == tmdbid) ? r.User.RatedMovies.First(rm => rm.TMDBId == tmdbid).Stars : 0
 				)).ToListAsync(cancellationToken);
 
 			var genres = movie.MovieGenres
@@ -134,7 +137,7 @@ namespace Cinemate.Service.Services.Movies
 			var movieRepository = _unitOfWork.Repository<Movie>();
 			var allMovies = await movieRepository.GetAllAsync();
 			var top100Movies = allMovies
-				.Where(m => m.Popularity != null && ((m.PosterPath != null) || (m.Trailer != null)))
+				.Where(m => m.Popularity != null && m.IsDeleted != true && m.PosterPath != null && m.Trailer != null)
 				.OrderByDescending(m => m.Popularity)
 				.Take(100)
 				.ToList();
@@ -177,7 +180,7 @@ namespace Cinemate.Service.Services.Movies
 			if (request == null || string.IsNullOrWhiteSpace(request.Genere))
 			{
 				var top100ByYear = await _context.Movies
-					.Where(m => m.ReleaseDate != null)
+					.Where(m => m.ReleaseDate != null && m.IsDeleted != true)
 					.OrderByDescending(m => m.ReleaseDate)
 					.Take(100)
 					.ToListAsync(cancellationToken);
@@ -228,7 +231,10 @@ namespace Cinemate.Service.Services.Movies
 		}
 		public async Task<PaginatedList<MoviesTopTenResponse>> GetPaginatedMovieBasedAsync(RequestFilters request, CancellationToken cancellationToken = default)
 		{
-			var query = _context.Movies.AsQueryable();
+			var query = _context.Movies
+				.Where(m => m.IsDeleted != true && m.PosterPath != null && m.Trailer != null)
+				.AsQueryable();
+
 			if (!string.IsNullOrEmpty(request.SearchValue))
 				query = query.Where(m => m.Title!.Contains(request.SearchValue));
 
@@ -243,7 +249,9 @@ namespace Cinemate.Service.Services.Movies
 
 			query = request.SortDirection == SortDirection.Descending
 				? query.OrderByDescending(m => m.Popularity)
-				: query.OrderBy(m => m.Popularity);
+					.ThenByDescending(m => m.ReleaseDate!.Value.Year)
+				: query.OrderBy(m => m.Popularity)
+					.ThenByDescending(m => m.ReleaseDate!.Value.Year);
 
 			var movies = query
 				   .Select(m => new MoviesTopTenResponse(
@@ -269,9 +277,10 @@ namespace Cinemate.Service.Services.Movies
 
 			var searchTerm = request.SearchValue.Trim().ToLower();
 			var movieResults = await _context.Movies
-				.Where(m => m.Title != null && m.Title.ToLower().Contains(searchTerm) && ((m.PosterPath != null) || (m.Trailer != null)))
+				.Where(m => m.Title != null && m.Title.ToLower().Contains(searchTerm) && ((m.PosterPath != null) || (m.Trailer != null)) && m.IsDeleted != true)
+				.Take(50)
 				.Select(m => new SearchResponse(
-					m.TMDBId.ToString(), 
+					m.TMDBId.ToString(),
 					m.Title!,
 					m.PosterPath ?? string.Empty,
 					"Movie"
@@ -279,20 +288,22 @@ namespace Cinemate.Service.Services.Movies
 
 			var actorResults = await _context.Casts
 				.Where(c => c.Name != null && c.Name.ToLower().Contains(searchTerm))
+				.Take(50)
 				.Select(c => new SearchResponse(
-					c.CastId.ToString(), 
+					c.CastId.ToString(),
 					c.Name!,
 					c.ProfilePath ?? string.Empty,
-					"Actor" 
+					"Actor"
 				)).AsNoTracking().ToListAsync(cancellationToken);
 
 			var userResults = await _context.Users
 				.Where(u => u.FullName.ToLower().Contains(searchTerm) && !u.IsDisabled)
+				.Take(50)
 				.Select(u => new SearchResponse(
 					u.Id,
 					u.FullName,
 					u.ProfilePic ?? string.Empty,
-					"User" 
+					"User"
 				)).AsNoTracking().ToListAsync(cancellationToken);
 
 			var combinedResults = movieResults

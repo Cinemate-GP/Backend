@@ -39,6 +39,7 @@ namespace Cinemate.Service.Services.Actors
 
 			var movies = actor.CastMovies
 				.OrderByDescending(cm => cm.Movie.ReleaseDate)
+				.Where(m => m.Movie.IsDeleted != true && m.Movie.PosterPath != null && m.Movie.Trailer != null)
 				.Select(cm => new MoviesTopTenResponse(
 					cm.Movie.TMDBId,
 					cm.Movie.Title ?? string.Empty,

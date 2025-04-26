@@ -30,33 +30,51 @@ namespace Cinemate.Service.Services.User_Rate_Movie
 
         public async Task<OperationResult> AddUserRateMovieAsync(UserRateMovieResponse userRateMovieResponse, CancellationToken cancellationToken = default)
         {
-            try
-            {
-                var userId = _httpContextAccessor.HttpContext?.User?.FindFirstValue(ClaimTypes.NameIdentifier);
+			try
+			{
+				var userId = _httpContextAccessor.HttpContext?.User?.FindFirstValue(ClaimTypes.NameIdentifier);
 
-                if (string.IsNullOrEmpty(userId))
-                    return OperationResult.Failure("Unauthorized user.");
+				if (string.IsNullOrEmpty(userId))
+					return OperationResult.Failure("Unauthorized user.");
 
+				if (userRateMovieResponse.Stars < 0 || userRateMovieResponse.Stars > 5)
+				{
+					return OperationResult.Failure("Rating must be between 1 and 5 stars.");
+				}
 
-                if (userRateMovieResponse.Stars < 0 || userRateMovieResponse.Stars > 5)
-                {
-                    return OperationResult.Failure("Rating must be between 1 and 5 stars.");
-                }
-                // Map the response DTO to entity (assuming you have a UserWatchedMovie entity)
-                var entity = new UserRateMovie
-                {
-                    UserId = userRateMovieResponse.UserId,
-                    TMDBId = userRateMovieResponse.TMDBId,
-                    RatedOn = DateTime.UtcNow,
-                    Stars = userRateMovieResponse.Stars
-                };
+				var existingRating = await _unitOfWork.Repository<UserRateMovie>()
+					.GetQueryable()
+					.FirstOrDefaultAsync(r => r.UserId == userRateMovieResponse.UserId &&
+											 r.TMDBId == userRateMovieResponse.TMDBId,
+											 cancellationToken);
 
-                await _unitOfWork.Repository<UserRateMovie>().AddAsync(entity);
-                await _unitOfWork.CompleteAsync();
+				if (existingRating != null)
+				{
+					existingRating.Stars = userRateMovieResponse.Stars;
+					existingRating.RatedOn = DateTime.UtcNow;
 
-                return OperationResult.Success("User Add Rated Succefully.");
-            }
-            catch (Exception ex)
+					await _unitOfWork.Repository<UserRateMovie>().Update(existingRating);
+					await _unitOfWork.CompleteAsync();
+
+					return OperationResult.Success("User rating updated successfully.");
+				}
+				else
+				{
+					var entity = new UserRateMovie
+					{
+						UserId = userRateMovieResponse.UserId,
+						TMDBId = userRateMovieResponse.TMDBId,
+						RatedOn = DateTime.UtcNow,
+						Stars = userRateMovieResponse.Stars
+					};
+
+					await _unitOfWork.Repository<UserRateMovie>().AddAsync(entity);
+					await _unitOfWork.CompleteAsync();
+
+					return OperationResult.Success("User rating added successfully.");
+				}
+			}
+			catch (Exception ex)
             {
                 return OperationResult.Failure("Fail To Rate Movie.");
             }
