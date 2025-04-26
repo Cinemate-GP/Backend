@@ -275,6 +275,11 @@ namespace Cinemate.Repository.Migrations
                     b.Property<string>("IMDBRating")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
                     b.Property<string>("Language")
                         .HasColumnType("nvarchar(max)");
 

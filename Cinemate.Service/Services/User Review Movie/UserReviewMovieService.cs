@@ -86,16 +86,17 @@ namespace Cinemate.Service.Services.User_Review_Movie
                         .GetQueryable() // Assuming this returns IQueryable<UserLikeMovie>
                         .Include(ul => ul.User)
                         .Include(ul => ul.Movie)
-                        .Select(ul => new UserReviewMovieResponseBack
+						.ThenInclude(m => m.UserRates)
+						.Select(ul => new UserReviewMovieResponseBack
         {
                             UserId = ul.UserId,
-                            ReviewBody = ul.ReviewBody,
+                            ReviewId = ul.ReviewId,
+							ReviewBody = ul.ReviewBody,
                             Title = ul.Movie.Title,
                             TMDBId = ul.Movie.TMDBId,
                             Poster_path = ul.Movie.PosterPath,
-                            FullName = ul.User.FullName,
-                            ProfilePic = ul.User.ProfilePic
-                        })
+							Stars = ul.Movie.UserRates.Where(urate => urate.UserId == ul.UserId).Select(urate => urate.Stars).FirstOrDefault() ?? 0
+						})
                         .ToListAsync(cancellationToken);
 
           

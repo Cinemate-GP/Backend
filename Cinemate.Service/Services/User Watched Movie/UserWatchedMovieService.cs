@@ -1,5 +1,6 @@
 ﻿using Cinemate.Core.Contracts.User_Review_Movie;
 using Cinemate.Core.Contracts.User_Watched_Movie;
+using Cinemate.Core.Contracts.User_WatchList_Movie;
 using Cinemate.Core.Entities;
 using Cinemate.Core.Errors.ProfileError;
 using Cinemate.Core.Repository_Contract;
@@ -35,8 +36,16 @@ namespace Cinemate.Service.Services.User_Watched_Movie
 
                 if (string.IsNullOrEmpty(userId))
                     return OperationResult.Failure("Unauthorized user.");
-                // Map the response DTO to entity (assuming you have a UserWatchedMovie entity)
-                var entity = new UserWatchedMovie
+				// Map the response DTO to entity (assuming you have a UserWatchedMovie entity)
+
+				var existingWatchedlistItem = await _unitOfWork.Repository<UserWatchedMovie>()
+                    .GetQueryable()
+                    .FirstOrDefaultAsync(w => w.UserId == userId && w.TMDBId == userWatchedMovieResponse.TMDBId, cancellationToken);
+
+				if (existingWatchedlistItem is not null)
+					return OperationResult.Success("Movie already watched before.");
+
+				var entity = new UserWatchedMovie
                 {
                     UserId = userWatchedMovieResponse.UserId,
                     TMDBId = userWatchedMovieResponse.TMDBId,
