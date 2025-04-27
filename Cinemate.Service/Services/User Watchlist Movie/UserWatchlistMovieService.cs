@@ -26,36 +26,42 @@ namespace Cinemate.Service.Services.User_Watchlist_Movie
             _httpContextAccessor = httpContextAccessor;
         }
 
-        public async Task<OperationResult> AddUserWatchlistMovieAsync(UserWatchListMovieResponse userWatchlistMovieResponse, CancellationToken cancellationToken = default)
-        {
-            try
-            {
-                var userId = _httpContextAccessor.HttpContext?.User?.FindFirstValue(ClaimTypes.NameIdentifier);
+		public async Task<OperationResult> AddUserWatchlistMovieAsync(UserWatchListMovieResponse userWatchlistMovieResponse, CancellationToken cancellationToken = default)
+		{
+			try
+			{
+				var userId = _httpContextAccessor.HttpContext?.User?.FindFirstValue(ClaimTypes.NameIdentifier);
 
-                if (string.IsNullOrEmpty(userId))
-                    return OperationResult.Failure("Unauthorized user.");
+				if (string.IsNullOrEmpty(userId))
+					return OperationResult.Failure("Unauthorized user.");
 
-                var entity = new UserMovieWatchList
-                {
-                    UserId = userId,
-                    TMDBId = userWatchlistMovieResponse.TMDBId,
-                    AddedOn = DateTime.UtcNow
-                };
-                
+				var existingWatchlistItem = await _unitOfWork.Repository<UserMovieWatchList>()
+					.GetQueryable()
+					.FirstOrDefaultAsync(w => w.UserId == userId && w.TMDBId == userWatchlistMovieResponse.TMDBId, cancellationToken);
 
-                await _unitOfWork.Repository<UserMovieWatchList>().AddAsync(entity);
-                await _unitOfWork.CompleteAsync();
+				if (existingWatchlistItem is not null)
+				    return OperationResult.Success("movie already in watchlist before.");
 
-                return OperationResult.Success("User added Watchlist successfully.");
-            }
-            catch (Exception ex)
-            {
-                // Log ex if needed
-                return OperationResult.Failure("Failed to add To WatchList.");
-            }
-        }
+				var entity = new UserMovieWatchList
+				{
+					UserId = userId,
+					TMDBId = userWatchlistMovieResponse.TMDBId,
+					AddedOn = DateTime.UtcNow
+				};
 
-        public async Task<OperationResult> DeleteUserWatchlistMovieAsync(UserWatchListMovieResponse response, CancellationToken cancellationToken = default)
+				await _unitOfWork.Repository<UserMovieWatchList>().AddAsync(entity);
+				await _unitOfWork.CompleteAsync();
+
+				return OperationResult.Success("User added Watchlist successfully.");
+			}
+			catch (Exception ex)
+			{
+				// Log ex if needed
+				return OperationResult.Failure("Failed to add To WatchList.");
+			}
+		}
+
+		public async Task<OperationResult> DeleteUserWatchlistMovieAsync(UserWatchListMovieResponse response, CancellationToken cancellationToken = default)
         {
             try
             {

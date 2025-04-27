@@ -13,6 +13,8 @@ namespace Cinemate.Core.Contracts.Movies
 		string FullName,
 		string? ProfilePic,
 		int ReviewId,
-		string ReviewBody
+		string ReviewBody,
+		DateTime ReviewedOn,
+		int? Stars
 	);
 }

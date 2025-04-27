@@ -11,6 +11,9 @@ namespace Cinemate.Repository.Data.Configuration
             builder.HasKey(m => m.TMDBId);
             builder.Property(m => m.TMDBId)
                 .ValueGeneratedNever();
-        }
+
+			builder.Property(m => m.IsDeleted)
+			   .HasDefaultValue(false);
+		}
     }
 }

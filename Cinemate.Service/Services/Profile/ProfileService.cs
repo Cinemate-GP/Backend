@@ -1,4 +1,5 @@
 ﻿using Cinemate.Core.Abstractions.Consts;
+using Cinemate.Core.Contracts.Follow;
 using Cinemate.Core.Contracts.Profile;
 using Cinemate.Core.Contracts.User_Like;
 using Cinemate.Core.Contracts.User_Rate_Movie;
@@ -38,8 +39,10 @@ namespace Cinemate.Service.Services.Profile
         private readonly IUserReviewMovieService userReviewMovieService;
         private readonly IUserWatchedMovieService userWatchedMovieService;
         private readonly IUserWatchlistMovieService userWatchlistService;
+        private readonly IUserfollowService userfollowService;
 		private readonly ApplicationDbContext _context;
-		public ProfileService(UserManager<ApplicationUser> userManager, SignInManager<ApplicationUser> signInManager, IFileService fileService, IHttpContextAccessor httpContextAccessor, IUserLikeMovieService userLikeMovieService, IUserRateMovieService userRateMovieService, IUserReviewMovieService userReviewMovieService, IUserWatchedMovieService userWatchedMovieService, IUserWatchlistMovieService userWatchlistService, ApplicationDbContext context)
+		
+        public ProfileService(UserManager<ApplicationUser> userManager, SignInManager<ApplicationUser> signInManager, IFileService fileService, IHttpContextAccessor httpContextAccessor, IUserLikeMovieService userLikeMovieService, IUserRateMovieService userRateMovieService, IUserReviewMovieService userReviewMovieService, IUserWatchedMovieService userWatchedMovieService, IUserWatchlistMovieService userWatchlistService, IUserfollowService userfollow, ApplicationDbContext context)
         {
             _userManager = userManager;
             _signInManager = signInManager;
@@ -50,8 +53,10 @@ namespace Cinemate.Service.Services.Profile
             this.userReviewMovieService = userReviewMovieService;
             this.userWatchedMovieService = userWatchedMovieService;
             this.userWatchlistService = userWatchlistService;
-			_context = context;
-		}
+            this.userfollowService = userfollow;
+            _context = context;
+        }
+
         public async Task<OperationResult> DeleteAsync(CancellationToken cancellationToken = default)
         {
             var userId = _httpContextAccessor.HttpContext?.User?.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -303,6 +308,7 @@ namespace Cinemate.Service.Services.Profile
             var likeActivities = await _context.UserLikeMovies
                 .Include(l => l.User)
                 .Include(l => l.Movie)
+                .Where(r => r.UserId == userId)
                 .OrderByDescending(l => l.LikedOn)
                 .Select(l => new UserRecentActivityResponse
                 {
@@ -319,6 +325,7 @@ namespace Cinemate.Service.Services.Profile
             var WatchedActivities = await _context.UserWatchedMovies
                 .Include(l => l.User)
                 .Include(l => l.Movie)
+                .Where(r => r.UserId == userId)
                 .OrderByDescending(l => l.WatchedOn)
                 .Select(l => new UserRecentActivityResponse
                 {
@@ -334,6 +341,7 @@ namespace Cinemate.Service.Services.Profile
             var WatchListActivities = await _context.UserMovieWatchList
                 .Include(l => l.User)
                 .Include(l => l.Movie)
+                .Where(r => r.UserId == userId)
                 .OrderByDescending(l => l.AddedOn)
                 .Select(l => new UserRecentActivityResponse
                 {
@@ -350,6 +358,7 @@ namespace Cinemate.Service.Services.Profile
             var reviewActivities = await _context.UserReviewMovies
               .Include(r => r.User)
               .Include(r => r.Movie)
+              .Where(r => r.UserId == userId)
               .OrderByDescending(r => r.ReviewedOn)
               .Select(r => new UserRecentActivityResponse
                {
@@ -367,9 +376,10 @@ namespace Cinemate.Service.Services.Profile
 
 
             var rateActivities = await _context.UserRateMovies
-                  .Include(r => r.User)
-                  .Include(r => r.Movie)
-                  .OrderByDescending(r => r.RatedOn)
+     .Include(r => r.User)
+     .Include(r => r.Movie)
+     .Where(r => r.UserId == userId)
+     .OrderByDescending(r => r.RatedOn)
      .Select(r => new UserRecentActivityResponse
      {
          UserId = r.UserId,
@@ -383,8 +393,6 @@ namespace Cinemate.Service.Services.Profile
          CreatedOn = r.RatedOn
      })
      .ToListAsync(cancellationToken);
-
-
 
             var allActivities = likeActivities
                 .Concat(WatchListActivities)
@@ -404,5 +412,46 @@ namespace Cinemate.Service.Services.Profile
 
             return $"{request.Scheme}://{request.Host}/images/{subFolder}/";
         }
+
+        public async Task<IEnumerable<UserDataFollow>> GetAllFollowers(CancellationToken cancellationToken = default)
+        {
+            var userId = _httpContextAccessor.HttpContext?.User?.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(userId))
+                return Enumerable.Empty<UserDataFollow>();
+            var result = await userfollowService.GetAllFollowers(userId,cancellationToken);
+
+            return result.Where(r => r.UserId == userId);
+        }
+
+        public async Task<IEnumerable<UserDataFollow>> GetAllFollowing(CancellationToken cancellationToken = default)
+        {
+            var userId = _httpContextAccessor.HttpContext?.User?.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(userId))
+                return Enumerable.Empty<UserDataFollow>();
+            var result = await userfollowService.GetAllFollowing(userId, cancellationToken);
+
+            return result.Where(r => r.UserId == userId);
+        }
+
+        public async Task<int> CountFollowers(CancellationToken cancellationToken = default)
+        {
+            var userId = _httpContextAccessor.HttpContext?.User?.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(userId))
+                return 0;
+            var followers = await userfollowService.GetAllFollowers(userId, cancellationToken);
+            return followers.Count();
+        }
+
+
+        public async Task<int> CountFollowing(CancellationToken cancellationToken = default)
+        {
+            var userId = _httpContextAccessor.HttpContext?.User?.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(userId))
+                return 0;
+            var followers = await userfollowService.GetAllFollowing(userId, cancellationToken);
+            return followers.Count();
+        }
+
+        
     }
 }

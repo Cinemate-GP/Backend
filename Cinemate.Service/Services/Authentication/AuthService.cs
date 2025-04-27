@@ -245,7 +245,7 @@ namespace Cinemate.Service.Services.Authentication
 				new Dictionary<string, string>
 				{
 					{"{{name}}",user.FullName },
-					{ "{{action_url}}",$"https://movie-recommendation-system-sand.vercel.app/test?userId={user.Id}&code={code}" }
+					{ "{{action_url}}",$"https://cinemate-eosin.vercel.app/test?userId={user.Id}&code={code}" }
 				}
 			);
 			BackgroundJob.Enqueue(() => _emailSender.SendEmailAsync(user.Email!, "✅ CineMate: Confirm your email", emailBody));
@@ -276,7 +276,7 @@ namespace Cinemate.Service.Services.Authentication
 				new Dictionary<string, string>
 				{
 					{"{{name}}",user.FullName },
-					{ "{{action_url}}",$"https://movie-recommendation-system-sand.vercel.app/auth/reset-password?email={user.Email}&code={code}" }
+					{ "{{action_url}}",$"https://cinemate-eosin.vercel.app/auth/reset-password?email={user.Email}&code={code}" }
 				}
 			);
 			BackgroundJob.Enqueue(() => _emailSender.SendEmailAsync(user.Email!, "✅ CineMate: Reset your password", emailBody));

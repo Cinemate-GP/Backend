@@ -27,7 +27,7 @@ namespace Cinemate.API.Controllers
 		public async Task<IActionResult> RefreshToken([FromBody] RefreshTokenRequest request, CancellationToken cancellationToken)
 		{
 			var response = await _authService.GetRefreshTokenAsync(request.Token, request.RefreshToken, cancellationToken);
-			return response.IsSuccess ? Ok() : response.ToProblem();
+			return response.IsSuccess ? Ok(response.Value) : response.ToProblem();
 		}
 		[HttpPost("revoke-refresh-token")]
 		public async Task<IActionResult> RevokeToken([FromBody] RefreshTokenRequest request, CancellationToken cancellationToken)
