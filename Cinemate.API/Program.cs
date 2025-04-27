@@ -25,7 +25,7 @@ namespace Cinemate.API
             using var scope = app.Services.CreateAsyncScope();
             var services = scope.ServiceProvider;
             var context = services.GetRequiredService<ApplicationDbContext>();
-            await ApplicationContextSeed.SeedAsync(context);
+           // await ApplicationContextSeed.SeedAsync(context);
              
 
 			// Configure the HTTP request pipeline.

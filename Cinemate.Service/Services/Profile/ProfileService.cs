@@ -308,6 +308,7 @@ namespace Cinemate.Service.Services.Profile
             var likeActivities = await _context.UserLikeMovies
                 .Include(l => l.User)
                 .Include(l => l.Movie)
+                .Where(r => r.UserId == userId)
                 .OrderByDescending(l => l.LikedOn)
                 .Select(l => new UserRecentActivityResponse
                 {
@@ -324,6 +325,7 @@ namespace Cinemate.Service.Services.Profile
             var WatchedActivities = await _context.UserWatchedMovies
                 .Include(l => l.User)
                 .Include(l => l.Movie)
+                .Where(r => r.UserId == userId)
                 .OrderByDescending(l => l.WatchedOn)
                 .Select(l => new UserRecentActivityResponse
                 {
@@ -339,6 +341,7 @@ namespace Cinemate.Service.Services.Profile
             var WatchListActivities = await _context.UserMovieWatchList
                 .Include(l => l.User)
                 .Include(l => l.Movie)
+                .Where(r => r.UserId == userId)
                 .OrderByDescending(l => l.AddedOn)
                 .Select(l => new UserRecentActivityResponse
                 {
@@ -355,6 +358,7 @@ namespace Cinemate.Service.Services.Profile
             var reviewActivities = await _context.UserReviewMovies
               .Include(r => r.User)
               .Include(r => r.Movie)
+              .Where(r => r.UserId == userId)
               .OrderByDescending(r => r.ReviewedOn)
               .Select(r => new UserRecentActivityResponse
                {
@@ -374,6 +378,7 @@ namespace Cinemate.Service.Services.Profile
             var rateActivities = await _context.UserRateMovies
      .Include(r => r.User)
      .Include(r => r.Movie)
+     .Where(r => r.UserId == userId)
      .OrderByDescending(r => r.RatedOn)
      .Select(r => new UserRecentActivityResponse
      {
