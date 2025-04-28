@@ -12,16 +12,9 @@ namespace Cinemate.Core.Service_Contract
 {
     public interface IUserRateMovieService
     {
-
         Task<OperationResult> AddUserRateMovieAsync(UserRateMovieResponse userRateMovieResponse, CancellationToken cancellationToken = default);
-
         Task<OperationResult> DeleteUserRateMovieAsync(UserRateMovieResponse response, CancellationToken cancellationToken = default);
-
         Task<IEnumerable<UserRateMovieResponseBack>> GetUserRateMoviesAsync(CancellationToken cancellationToken = default);
-
-
-
-
-
-    }
+        Task<Result<IEnumerable<UserRateMovieResponseBack>>> GetMoviesRatedByUserAsync(string userId, CancellationToken cancellationToken = default);
+	}
 }

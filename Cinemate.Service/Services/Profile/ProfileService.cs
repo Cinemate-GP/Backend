@@ -213,18 +213,32 @@ namespace Cinemate.Service.Services.Profile
 			if (user is null)
 				return Result.Failure<IEnumerable<FeedResponse>>(UserErrors.UserNotFound);
 
-			var followedUserIds = await _context.UserFollows
+			var userFollows = await _context.UserFollows
 				.Where(f => f.UserId == id)
-				.Select(f => f.FollowId)
+				.Select(f => new { f.FollowId, f.FollowedOn })
 				.ToListAsync(cancellationToken);
 
-			if (!followedUserIds.Any())
+			if (!userFollows.Any())
 				return Result.Success(Enumerable.Empty<FeedResponse>());
+
+			var followedUserIds = userFollows.Select(f => f.FollowId).ToList();
 
 			var likeActivities = await _context.UserLikeMovies
 				.Include(l => l.User)
 				.Include(l => l.Movie)
 				.Where(l => followedUserIds.Contains(l.UserId))
+				.ToListAsync(cancellationToken);
+
+			likeActivities = likeActivities
+				.Join(userFollows,
+					like => like.UserId,
+					follow => follow.FollowId,
+					(like, follow) => new { Like = like, FollowedOn = follow.FollowedOn })
+				.Where(x => x.Like.LikedOn > x.FollowedOn)
+				.Select(x => x.Like)
+				.ToList();
+
+			var likeResponses = likeActivities
 				.OrderByDescending(l => l.LikedOn)
 				.Select(l => new FeedResponse(
 					l.UserId,
@@ -236,12 +250,24 @@ namespace Cinemate.Service.Services.Profile
 					l.Movie.Title,
 					$"liked {l.Movie.Title}",
 					l.LikedOn
-				)).ToListAsync(cancellationToken);
+				)).ToList();
 
 			var followActivities = await _context.UserFollows
 				.Include(f => f.Follower)
 				.Include(f => f.FollowedUser)
 				.Where(f => followedUserIds.Contains(f.UserId))
+				.ToListAsync(cancellationToken);
+
+			followActivities = followActivities
+				.Join(userFollows,
+					follow => follow.UserId,
+					userFollow => userFollow.FollowId,
+					(follow, userFollow) => new { Follow = follow, FollowedOn = userFollow.FollowedOn })
+				.Where(x => x.Follow.FollowedOn > x.FollowedOn)
+				.Select(x => x.Follow)
+				.ToList();
+
+			var followResponses = followActivities
 				.OrderByDescending(f => f.FollowedOn)
 				.Select(f => new FeedResponse(
 					f.UserId,
@@ -253,12 +279,25 @@ namespace Cinemate.Service.Services.Profile
 					f.FollowedUser.FullName,
 					$"followed {f.FollowedUser.FullName}",
 					f.FollowedOn
-				)).ToListAsync(cancellationToken);
+				)).ToList();
+
 
 			var reviewActivities = await _context.UserReviewMovies
 				.Include(r => r.User)
 				.Include(r => r.Movie)
 				.Where(r => followedUserIds.Contains(r.UserId))
+				.ToListAsync(cancellationToken);
+
+			reviewActivities = reviewActivities
+				.Join(userFollows,
+					review => review.UserId,
+					follow => follow.FollowId,
+					(review, follow) => new { Review = review, FollowedOn = follow.FollowedOn })
+				.Where(x => x.Review.ReviewedOn > x.FollowedOn)
+				.Select(x => x.Review)
+				.ToList();
+
+			var reviewResponses = reviewActivities
 				.OrderByDescending(r => r.ReviewedOn)
 				.Select(r => new FeedResponse(
 					r.UserId,
@@ -270,13 +309,24 @@ namespace Cinemate.Service.Services.Profile
 					r.Movie.Title,
 					r.ReviewBody,
 					r.ReviewedOn
-				))
-				.ToListAsync(cancellationToken);
+				)).ToList();
 
 			var rateActivities = await _context.UserRateMovies
 				.Include(r => r.User)
 				.Include(r => r.Movie)
 				.Where(r => followedUserIds.Contains(r.UserId))
+				.ToListAsync(cancellationToken);
+
+			rateActivities = rateActivities
+				.Join(userFollows,
+					rate => rate.UserId,
+					follow => follow.FollowId,
+					(rate, follow) => new { Rate = rate, FollowedOn = follow.FollowedOn })
+				.Where(x => x.Rate.RatedOn > x.FollowedOn)
+				.Select(x => x.Rate)
+				.ToList();
+
+			var rateResponses = rateActivities
 				.OrderByDescending(r => r.RatedOn)
 				.Select(r => new FeedResponse(
 					r.UserId,
@@ -288,21 +338,21 @@ namespace Cinemate.Service.Services.Profile
 					r.Movie.Title,
 					$"rated {r.Movie.Title} with {r.Stars} stars",
 					r.RatedOn
-				))
-				.ToListAsync(cancellationToken);
+				)).ToList();
 
-			var allActivities = likeActivities
-				.Concat(followActivities)
-				.Concat(reviewActivities)
-				.Concat(rateActivities)
+			var allActivities = likeResponses
+				.Concat(followResponses)
+				.Concat(reviewResponses)
+				.Concat(rateResponses)
 				.OrderByDescending(a => a.CreatedOn)
 				.ToList();
+
 			return Result.Success<IEnumerable<FeedResponse>>(allActivities);
 		}
-        public async Task<Result<IEnumerable<UserRecentActivityResponse>>> GetAllRecentActivity(CancellationToken cancellationToken = default)
+		public async Task<Result<IEnumerable<UserRecentActivityResponse>>> GetAllRecentActivity(string userId, CancellationToken cancellationToken = default)
         {
-            var userId = _httpContextAccessor.HttpContext?.User?.FindFirstValue(ClaimTypes.NameIdentifier);
-            if (string.IsNullOrEmpty(userId))
+            var user = await _userManager.FindByIdAsync(userId);
+			if (user is null)
                 return Result.Failure<IEnumerable<UserRecentActivityResponse>>(UserErrors.UserNotFound);
 
             var likeActivities = await _context.UserLikeMovies

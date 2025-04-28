@@ -2,9 +2,11 @@
 using Cinemate.Core.Contracts.User_Rate_Movie;
 using Cinemate.Core.Contracts.User_Watched_Movie;
 using Cinemate.Core.Entities;
+using Cinemate.Core.Entities.Auth;
 using Cinemate.Core.Errors.ProfileError;
 using Cinemate.Core.Repository_Contract;
 using Cinemate.Core.Service_Contract;
+using Cinemate.Repository.Abstractions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Org.BouncyCastle.Tls;
@@ -14,6 +16,7 @@ using System.Linq;
 using System.Security.Claims;
 using System.Text;
 using System.Threading.Tasks;
+using static Cinemate.Repository.Errors.Authentication.AuthenticationError;
 
 namespace Cinemate.Service.Services.User_Rate_Movie
 {
@@ -124,5 +127,32 @@ namespace Cinemate.Service.Services.User_Rate_Movie
             // Return the mapped response, not the original `Watched`
          
         }
-    }
+		public async Task<Result<IEnumerable<UserRateMovieResponseBack>>> GetMoviesRatedByUserAsync(string userId, CancellationToken cancellationToken = default)
+		{
+			var userDetails = await _unitOfWork.Repository<ApplicationUser>().GetQueryable().FirstOrDefaultAsync(u => u.Id == userId, cancellationToken);
+			if (userDetails is null)
+				return Result.Failure<IEnumerable<UserRateMovieResponseBack>>(UserErrors.UserNotFound);
+
+			var userRateMovieRepo = _unitOfWork.Repository<UserRateMovie>().GetQueryable();
+			var movieRepo = _unitOfWork.Repository<Movie>().GetQueryable();
+			var userRepo = _unitOfWork.Repository<ApplicationUser>().GetQueryable();
+
+			var ratedMovies = await (from rate in userRateMovieRepo
+									 join movie in movieRepo on rate.TMDBId equals movie.TMDBId
+									 join user in userRepo on rate.UserId equals user.Id
+									 select new UserRateMovieResponseBack
+									 {
+										 UserId = rate.UserId,
+										 TMDBId = rate.TMDBId,
+										 Stars = rate.Stars,
+										 Title = movie.Title,
+										 Poster_path = movie.PosterPath,
+										 FullName = user.FullName,
+										 ProfilePic = user.ProfilePic,
+										 CreatedAt = rate.RatedOn
+									 }).ToListAsync(cancellationToken);
+
+			return Result.Success<IEnumerable<UserRateMovieResponseBack>>(ratedMovies);
+		}
+	}
 }

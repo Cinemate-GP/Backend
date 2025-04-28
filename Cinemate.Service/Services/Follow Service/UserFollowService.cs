@@ -13,6 +13,10 @@ using System.Linq;
 using System.Security.Claims;
 using System.Text;
 using System.Threading.Tasks;
+using Cinemate.Repository.Abstractions;
+using static Cinemate.Repository.Errors.Authentication.AuthenticationError;
+using Microsoft.Extensions.DependencyInjection;
+
 
 namespace Cinemate.Service.Services.Follow_Service
 {
@@ -20,12 +24,13 @@ namespace Cinemate.Service.Services.Follow_Service
     {
         private readonly IUnitOfWork _unitOfWork;
         private readonly IHttpContextAccessor _httpContextAccessor;
-         public UserFollowService(IUnitOfWork unitOfWork, IHttpContextAccessor httpContextAccessor)
-        {
+        private readonly IServiceProvider _serviceProvider;
+         public UserFollowService(IUnitOfWork unitOfWork, IHttpContextAccessor httpContextAccessor, IServiceProvider serviceProvider)
+         {
             _unitOfWork = unitOfWork;
             _httpContextAccessor = httpContextAccessor;
-        }
-
+            _serviceProvider = serviceProvider;
+		 }
         public async Task<OperationResult> AddUserFollowAsync(AddFollowRequest request, CancellationToken cancellationToken = default)
         {
             try
@@ -76,7 +81,6 @@ namespace Cinemate.Service.Services.Follow_Service
                 return OperationResult.Failure("Failed to follow user.");
             }
         }
-
         public async Task<OperationResult> DeleteUserFollowAsync(AddFollowRequest request, CancellationToken cancellationToken = default)
         {
             try
@@ -107,8 +111,6 @@ namespace Cinemate.Service.Services.Follow_Service
                 return OperationResult.Failure("Failed to unfollow user.");
             }
         }
-
-
         public async Task<IEnumerable<UserDataFollow>> GetAllFollowers(string userId, CancellationToken cancellationToken = default)
         {
             var userFollowRepo = _unitOfWork.Repository<UserFollow>().GetQueryable();
@@ -127,8 +129,6 @@ namespace Cinemate.Service.Services.Follow_Service
 
             return followers;
         }
-
-
         public async Task<IEnumerable<UserDataFollow>> GetAllFollowing(string userId, CancellationToken cancellationToken = default)
         {
             var userFollowRepo = _unitOfWork.Repository<UserFollow>().GetQueryable();
@@ -147,6 +147,44 @@ namespace Cinemate.Service.Services.Follow_Service
 
             return following;
         }
+		public async Task<Result<GetCountFollowersAndFollowingResponse>> GetCountFollowersAndFollowingAsync(string userId, CancellationToken cancellationToken = default)
+		{
+			var userRepo = _unitOfWork.Repository<ApplicationUser>().GetQueryable();
+			var user = await userRepo.FirstOrDefaultAsync(u => u.Id == userId, cancellationToken);
+			if (user == null)
+				return Result.Failure<GetCountFollowersAndFollowingResponse>(UserErrors.UserNotFound);
 
-    }
+			var userFollowRepo = _unitOfWork.Repository<UserFollow>().GetQueryable();
+			var followersCount = await userFollowRepo.CountAsync(uf => uf.FollowId == userId, cancellationToken);
+			var followingCount = await userFollowRepo.CountAsync(uf => uf.UserId == userId, cancellationToken);
+			var response = new GetCountFollowersAndFollowingResponse(followersCount, followingCount);
+			return Result.Success(response);
+		}
+		public async Task<Result<FollowerDetailsResponse>> GetFollowersDetailsAsync(string userId, FollowerIdRequest request, CancellationToken cancellationToken = default)
+        {
+			var userRepo = _unitOfWork.Repository<ApplicationUser>().GetQueryable();
+			var user = await userRepo.FirstOrDefaultAsync(u => u.Id == userId, cancellationToken);
+			if (user is null)
+				return Result.Failure<FollowerDetailsResponse>(UserErrors.UserNotFound);
+
+			var follower = await userRepo.FirstOrDefaultAsync(u => u.Id == request.Id, cancellationToken);
+			if (follower is null)
+				return Result.Failure<FollowerDetailsResponse>(UserErrors.FollowerNotFound);
+
+			var userFollowRepo = _unitOfWork.Repository<UserFollow>().GetQueryable();
+			var isFollowing = await userFollowRepo.AnyAsync(uf => uf.UserId == userId && uf.FollowId == request.Id, cancellationToken);
+
+			var profileService = _serviceProvider.GetRequiredService<IProfileService>();
+			var recentActivity = await profileService.GetAllRecentActivity(request.Id, cancellationToken);
+
+			var response = new FollowerDetailsResponse(
+		        request.Id,
+				follower.FullName,
+				follower.ProfilePic,
+				isFollowing,
+				recentActivity.Value
+	        );
+			return Result.Success(response);
+		}
+	}
 }
