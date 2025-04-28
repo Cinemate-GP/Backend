@@ -67,7 +67,7 @@ namespace Cinemate.Service.Services.Movies
 
 			return response;
 		}
-		public async Task<Result<MovieDetailsResponse>> GetMovieDetailsAsync(int tmdbid, CancellationToken cancellationToken = default)
+		public async Task<Result<MovieDetailsResponse>> GetMovieDetailsAsync(string userId, int tmdbid, CancellationToken cancellationToken = default)
 		{
 			var movie = await _context.Movies
 				.Include(m => m.CastMovies)
@@ -88,6 +88,22 @@ namespace Cinemate.Service.Services.Movies
 					cm.Role,
 					cm.Extra
 				)).ToList();
+
+			var likedMovie = await _unitOfWork.Repository<UserLikeMovie>()
+				.GetQueryable()
+				.FirstOrDefaultAsync(w => w.UserId == userId && w.TMDBId == tmdbid, cancellationToken);
+
+				var userStarMovie = await _unitOfWork.Repository<UserRateMovie>()
+				.GetQueryable()
+				.FirstOrDefaultAsync(w => w.UserId == userId && w.TMDBId == tmdbid, cancellationToken);
+
+			var watchedMovie = await _unitOfWork.Repository<UserWatchedMovie>()
+				.GetQueryable()
+				.FirstOrDefaultAsync(w => w.UserId == userId && w.TMDBId == tmdbid, cancellationToken);
+
+			var watcheListMovie = await _unitOfWork.Repository<UserMovieWatchList>()
+				.GetQueryable()
+				.FirstOrDefaultAsync(w => w.UserId == userId && w.TMDBId == tmdbid, cancellationToken);
 
 			var reviews = await _context.UserReviewMovies
 				.Include(r => r.User)
@@ -125,6 +141,10 @@ namespace Cinemate.Service.Services.Movies
 				movie.RottenTomatoesRating,
 				movie.MetacriticRating,
 				movie.MPA,
+				userStarMovie?.Stars,  
+				likedMovie != null,
+				watcheListMovie != null,
+				watchedMovie != null,
 				actors,
 				genres,
 				reviews

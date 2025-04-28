@@ -24,7 +24,11 @@ namespace Cinemate.Core.Contracts.Movies
         string? RottenTomatoesRating,
         string? MetacriticRating,
         string? MPA,
-        IEnumerable<ActorMovieResponse> Actors,
+		int? Stars,
+		bool IsLiked,
+		bool IsInWatchList,
+		bool IsWatched,
+		IEnumerable<ActorMovieResponse> Actors,
 		IEnumerable<GenresDetails> GenresDetails,
 		IEnumerable<MovieReviewResponse> MovieReviews
 	);

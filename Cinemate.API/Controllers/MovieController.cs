@@ -4,6 +4,8 @@ using Microsoft.AspNetCore.Mvc;
 using Cinemate.Repository.Abstractions;
 using Cinemate.Core.Contracts.Movies;
 using Cinemate.Core.Contracts.Common;
+using Cinemate.Core.Extensions;
+using Microsoft.AspNetCore.Authorization;
 
 namespace Cinemate.API.Controllers
 {
@@ -28,10 +30,11 @@ namespace Cinemate.API.Controllers
 			var result = await _movieService.GetMovieTopTenRatedAsync(cancellationToken);
 			return Ok(result);
 		}
+		[Authorize]
 		[HttpGet("{tmdbid}")]
 		public async Task<IActionResult> GetMovieDetails(int tmdbid, CancellationToken cancellationToken)
 		{
-			var result = await _movieService.GetMovieDetailsAsync(tmdbid, cancellationToken);
+			var result = await _movieService.GetMovieDetailsAsync(User.GetUserId()!,tmdbid, cancellationToken);
 			return result.IsSuccess ? Ok(result.Value) : result.ToProblem();
 		}
 		[HttpGet("random-movie")]
