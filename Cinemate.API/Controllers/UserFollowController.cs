@@ -1,8 +1,9 @@
 ﻿using Cinemate.Core.Contracts.Follow;
 using Cinemate.Core.Contracts.User_Like;
+using Cinemate.Core.Extensions;
 using Cinemate.Core.Service_Contract;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
+using Cinemate.Repository.Abstractions;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Cinemate.API.Controllers
@@ -51,47 +52,29 @@ namespace Cinemate.API.Controllers
         }
 
         // GET: api/UserLikeMovie
-        [HttpGet("GetAllUserFollowers{Userid}")]
-        public async Task<IActionResult> GetAllUserFollowers( string Userid,CancellationToken cancellationToken)
+        [HttpGet("get-all-followers")]
+        public async Task<IActionResult> GetAllUserFollowers(CancellationToken cancellationToken)
         {
-            var Followers = await _userFollowMovieService.GetAllFollowers(Userid, cancellationToken);
-
-            if (Followers == null || !Followers.Any())
-            {
-                return NotFound("No Followers found."); // Return 404 if no likes are found
-            }
-
-            return Ok(Followers); // Return 200 OK with the list of liked movies
+            var result = await _userFollowMovieService.GetAllFollowers(User.GetUserId()!, cancellationToken);
+            return Ok(result); // Return 200 OK with the list of liked movies
         }
-        [HttpGet("GetAllUserFollowing{Userid}")]
-        public async Task<IActionResult> GetAllUserFollowing(string Userid, CancellationToken cancellationToken)
+        [HttpGet("get-all-following")]
+        public async Task<IActionResult> GetAllUserFollowing(CancellationToken cancellationToken)
         {
-            var Following = await _userFollowMovieService.GetAllFollowing(Userid, cancellationToken);
-
-            if (Following == null || !Following.Any())
-            {
-                return NotFound("No Following found."); // Return 404 if no likes are found
-            }
-
-            return Ok(Following); // Return 200 OK with the list of liked movies
+            var result = await _userFollowMovieService.GetAllFollowing(User.GetUserId()!, cancellationToken);
+            return Ok(result); // Return 200 OK with the list of liked movies
         }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    }
+		[HttpGet("count-follow")]
+		public async Task<IActionResult> GetFollowCount(CancellationToken cancellationToken)
+		{
+			var result = await _userFollowMovieService.GetCountFollowersAndFollowingAsync(User.GetUserId()!, cancellationToken);
+			return result.IsSuccess ?  Ok(result.Value) : result.ToProblem();
+		}
+		[HttpPost("follow-details")]
+		public async Task<IActionResult> GetFollowDetails([FromBody] FollowerIdRequest request, CancellationToken cancellationToken)
+		{
+			var result = await _userFollowMovieService.GetFollowersDetailsAsync(User.GetUserId()!, request, cancellationToken);
+			return result.IsSuccess ? Ok(result.Value) : result.ToProblem();
+		}
+	}
 }
