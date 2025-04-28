@@ -1,8 +1,10 @@
 ﻿using Cinemate.Core.Contracts.User_Rate_Movie;
 using Cinemate.Core.Contracts.User_Watched_Movie;
+using Cinemate.Core.Extensions;
 using Cinemate.Core.Service_Contract;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
+using Cinemate.Repository.Abstractions;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Cinemate.API.Controllers
@@ -57,9 +59,11 @@ namespace Cinemate.API.Controllers
 
             return Ok(Rated); // Return 200 OK with the list of liked movies
         }
-
-
-
-
-    }
+		[HttpGet("")]
+		public async Task<IActionResult> GetUserMoviesRated(CancellationToken cancellationToken)
+		{
+			var result = await _userRateMovieService.GetMoviesRatedByUserAsync(User.GetUserId()!, cancellationToken);
+			return result.IsSuccess ? Ok(result.Value) : result.ToProblem();
+		}
+	}
 }

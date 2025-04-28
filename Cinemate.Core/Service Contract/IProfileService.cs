@@ -26,7 +26,7 @@ namespace Cinemate.Core.Service_Contract
         Task< IEnumerable<UserRateMovieResponseBack>> GetAllMoviesRated(CancellationToken cancellationToken = default);
         Task<IEnumerable<UserReviewMovieResponseBack>> GetAllMoviesReviews(CancellationToken cancellationToken = default);
         Task<IEnumerable<UserWatchListMovieResponseBack>> GetAllWatchlist(CancellationToken cancellationToken = default);
-        Task<Result<IEnumerable<UserRecentActivityResponse>>> GetAllRecentActivity(CancellationToken cancellationToken = default);
+        Task<Result<IEnumerable<UserRecentActivityResponse>>> GetAllRecentActivity(string id, CancellationToken cancellationToken = default);
         Task<IEnumerable<UserDataFollow>> GetAllFollowers(CancellationToken cancellationToken = default);
         Task<IEnumerable<UserDataFollow>> GetAllFollowing(CancellationToken cancellationToken = default);
         Task<int> CountFollowers(CancellationToken cancellationToken = default);
