@@ -12,6 +12,7 @@ namespace Cinemate.Core.Contracts.Movies
 	(
 		int TMDBId,
 		string? Title,
+		string? LogoPath,
 		string? Tagline,
 		string? PosterPath,
         string? BackdropPath,

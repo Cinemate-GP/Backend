@@ -223,10 +223,19 @@ namespace Cinemate.Service.Services.Profile
 
 			var followedUserIds = userFollows.Select(f => f.FollowId).ToList();
 
+			// Like Activities
 			var likeActivities = await _context.UserLikeMovies
-				.Include(l => l.User)
-				.Include(l => l.Movie)
 				.Where(l => followedUserIds.Contains(l.UserId))
+				.Select(l => new
+				{
+					l.UserId,
+					UserFullName = l.User.FullName,
+					UserProfilePic = l.User.ProfilePic,
+					l.TMDBId,
+					MoviePosterPath = l.Movie.PosterPath,
+					MovieTitle = l.Movie.Title,
+					l.LikedOn
+				})
 				.ToListAsync(cancellationToken);
 
 			likeActivities = likeActivities
@@ -242,20 +251,29 @@ namespace Cinemate.Service.Services.Profile
 				.OrderByDescending(l => l.LikedOn)
 				.Select(l => new FeedResponse(
 					l.UserId,
-					l.User.FullName,
-					l.User.ProfilePic,
+					l.UserFullName,
+					l.UserProfilePic,
 					"like",
 					l.TMDBId.ToString(),
-					l.Movie.PosterPath,
-					l.Movie.Title,
-					$"liked {l.Movie.Title}",
+					l.MoviePosterPath,
+					l.MovieTitle,
+					$"liked {l.MovieTitle}",
 					l.LikedOn
 				)).ToList();
 
+			// Follow Activities
 			var followActivities = await _context.UserFollows
-				.Include(f => f.Follower)
-				.Include(f => f.FollowedUser)
 				.Where(f => followedUserIds.Contains(f.UserId))
+				.Select(f => new
+				{
+					f.UserId,
+					FollowerFullName = f.Follower.FullName,
+					FollowerProfilePic = f.Follower.ProfilePic,
+					f.FollowId,
+					FollowedUserFullName = f.FollowedUser.FullName,
+					FollowedUserProfilePic = f.FollowedUser.ProfilePic,
+					f.FollowedOn
+				})
 				.ToListAsync(cancellationToken);
 
 			followActivities = followActivities
@@ -271,21 +289,30 @@ namespace Cinemate.Service.Services.Profile
 				.OrderByDescending(f => f.FollowedOn)
 				.Select(f => new FeedResponse(
 					f.UserId,
-					f.Follower.FullName,
-					f.Follower.ProfilePic,
+					f.FollowerFullName,
+					f.FollowerProfilePic,
 					"follow",
 					f.FollowId,
-					null,
-					f.FollowedUser.FullName,
-					$"followed {f.FollowedUser.FullName}",
+					f.FollowedUserProfilePic,
+					f.FollowedUserFullName,
+					$"followed {f.FollowedUserFullName}",
 					f.FollowedOn
 				)).ToList();
 
-
+			// Review Activities
 			var reviewActivities = await _context.UserReviewMovies
-				.Include(r => r.User)
-				.Include(r => r.Movie)
 				.Where(r => followedUserIds.Contains(r.UserId))
+				.Select(r => new
+				{
+					r.UserId,
+					UserFullName = r.User.FullName,
+					UserProfilePic = r.User.ProfilePic,
+					r.TMDBId,
+					MoviePosterPath = r.Movie.PosterPath,
+					MovieTitle = r.Movie.Title,
+					r.ReviewBody,
+					r.ReviewedOn
+				})
 				.ToListAsync(cancellationToken);
 
 			reviewActivities = reviewActivities
@@ -301,20 +328,30 @@ namespace Cinemate.Service.Services.Profile
 				.OrderByDescending(r => r.ReviewedOn)
 				.Select(r => new FeedResponse(
 					r.UserId,
-					r.User.FullName,
-					r.User.ProfilePic,
+					r.UserFullName,
+					r.UserProfilePic,
 					"review",
 					r.TMDBId.ToString(),
-					r.Movie.PosterPath,
-					r.Movie.Title,
+					r.MoviePosterPath,
+					r.MovieTitle,
 					r.ReviewBody,
 					r.ReviewedOn
 				)).ToList();
 
+			// Rate Activities
 			var rateActivities = await _context.UserRateMovies
-				.Include(r => r.User)
-				.Include(r => r.Movie)
 				.Where(r => followedUserIds.Contains(r.UserId))
+				.Select(r => new
+				{
+					r.UserId,
+					UserFullName = r.User.FullName,
+					UserProfilePic = r.User.ProfilePic,
+					r.TMDBId,
+					MoviePosterPath = r.Movie.PosterPath,
+					MovieTitle = r.Movie.Title,
+					r.Stars,
+					r.RatedOn
+				})
 				.ToListAsync(cancellationToken);
 
 			rateActivities = rateActivities
@@ -330,131 +367,170 @@ namespace Cinemate.Service.Services.Profile
 				.OrderByDescending(r => r.RatedOn)
 				.Select(r => new FeedResponse(
 					r.UserId,
-					r.User.FullName,
-					r.User.ProfilePic,
+					r.UserFullName,
+					r.UserProfilePic,
 					"rate",
 					r.TMDBId.ToString(),
-					r.Movie.PosterPath,
-					r.Movie.Title,
-					$"rated {r.Movie.Title} with {r.Stars} stars",
+					r.MoviePosterPath,
+					r.MovieTitle,
+					$"rated {r.MovieTitle} with {r.Stars} stars",
 					r.RatedOn
+				)).ToList();
+
+			// Watched Activities (fixing typo: watcedActivities -> watchedActivities)
+			var watchedActivities = await _context.UserWatchedMovies
+				.Where(r => followedUserIds.Contains(r.UserId))
+				.Select(r => new
+				{
+					r.UserId,
+					UserFullName = r.User.FullName,
+					UserProfilePic = r.User.ProfilePic,
+					r.TMDBId,
+					MoviePosterPath = r.Movie.PosterPath,
+					MovieTitle = r.Movie.Title,
+					r.WatchedOn
+				})
+				.ToListAsync(cancellationToken);
+
+			watchedActivities = watchedActivities
+				.Join(userFollows,
+					watched => watched.UserId,
+					follow => follow.FollowId,
+					(watched, follow) => new { Watched = watched, FollowedOn = follow.FollowedOn })
+				.Where(x => x.Watched.WatchedOn > x.FollowedOn)
+				.Select(x => x.Watched)
+				.ToList();
+
+			var watchedResponses = watchedActivities
+				.OrderByDescending(r => r.WatchedOn)
+				.Select(r => new FeedResponse(
+					r.UserId,
+					r.UserFullName,
+					r.UserProfilePic,
+					"Watched",
+					r.TMDBId.ToString(),
+					r.MoviePosterPath,
+					r.MovieTitle,
+					$"Watched: {r.MovieTitle}",
+					r.WatchedOn
 				)).ToList();
 
 			var allActivities = likeResponses
 				.Concat(followResponses)
 				.Concat(reviewResponses)
 				.Concat(rateResponses)
+				.Concat(watchedResponses)
 				.OrderByDescending(a => a.CreatedOn)
 				.ToList();
 
 			return Result.Success<IEnumerable<FeedResponse>>(allActivities);
 		}
 		public async Task<Result<IEnumerable<UserRecentActivityResponse>>> GetAllRecentActivity(string userId, CancellationToken cancellationToken = default)
-        {
-            var user = await _userManager.FindByIdAsync(userId);
+		{
+			var user = await _userManager.FindByIdAsync(userId);
 			if (user is null)
-                return Result.Failure<IEnumerable<UserRecentActivityResponse>>(UserErrors.UserNotFound);
+				return Result.Failure<IEnumerable<UserRecentActivityResponse>>(UserErrors.UserNotFound);
 
-            var likeActivities = await _context.UserLikeMovies
-                .Include(l => l.User)
-                .Include(l => l.Movie)
-                .Where(r => r.UserId == userId)
-                .OrderByDescending(l => l.LikedOn)
-                .Select(l => new UserRecentActivityResponse
-                {
-                    UserId = l.UserId,
-                    TMDBId = l.TMDBId,
-                    Type = "like",
-                    Id = l.TMDBId.ToString(),
-                    PosterPath = l.Movie.PosterPath,
-                    Name = l.Movie.Title,
-                    Description = $"liked {l.Movie.Title}",
-                    CreatedOn = l.LikedOn
-                }).ToListAsync(cancellationToken);
+			var likeActivities = await _context.UserLikeMovies
+				.Include(l => l.User)
+				.Include(l => l.Movie)
+				.Where(r => r.UserId == userId)
+				.OrderByDescending(l => l.LikedOn)
+				.Select(l => new UserRecentActivityResponse
+				{
+					UserId = l.UserId,
+					TMDBId = l.TMDBId,
+					Type = "like",
+					Id = l.TMDBId.ToString(),
+					PosterPath = l.Movie.PosterPath,
+					Name = l.Movie.Title,
+					Description = $"liked {l.Movie.Title}",
+					CreatedOn = l.LikedOn
+				}).ToListAsync(cancellationToken);
 
-            var WatchedActivities = await _context.UserWatchedMovies
-                .Include(l => l.User)
-                .Include(l => l.Movie)
-                .Where(r => r.UserId == userId)
-                .OrderByDescending(l => l.WatchedOn)
-                .Select(l => new UserRecentActivityResponse
-                {
-                    UserId = l.UserId,
-                    TMDBId = l.TMDBId,
-                    Type = "Watched",
-                    Id = l.TMDBId.ToString(),
-                    PosterPath = l.Movie.PosterPath,
-                    Name = l.Movie.Title,
-                    Description = $"Watched {l.Movie.Title}",
-                    CreatedOn = l.WatchedOn
-                }).ToListAsync(cancellationToken);
-            var WatchListActivities = await _context.UserMovieWatchList
-                .Include(l => l.User)
-                .Include(l => l.Movie)
-                .Where(r => r.UserId == userId)
-                .OrderByDescending(l => l.AddedOn)
-                .Select(l => new UserRecentActivityResponse
-                {
-                    UserId = l.UserId,
-                    TMDBId = l.TMDBId,
-                    Type = "WatchList",
-                    Id = l.TMDBId.ToString(),
-                    PosterPath = l.Movie.PosterPath,
-                    Name = l.Movie.Title,
-                    Description = $"WatchList {l.Movie.Title}",
-                    CreatedOn = l.AddedOn
-                }).ToListAsync(cancellationToken);
+			var WatchedActivities = await _context.UserWatchedMovies
+				.Include(l => l.User)
+				.Include(l => l.Movie)
+				.Where(r => r.UserId == userId)
+				.OrderByDescending(l => l.WatchedOn)
+				.Select(l => new UserRecentActivityResponse
+				{
+					UserId = l.UserId,
+					TMDBId = l.TMDBId,
+					Type = "Watched",
+					Id = l.TMDBId.ToString(),
+					PosterPath = l.Movie.PosterPath,
+					Name = l.Movie.Title,
+					Description = $"Watched {l.Movie.Title}",
+					CreatedOn = l.WatchedOn
+				}).ToListAsync(cancellationToken);
+			var WatchListActivities = await _context.UserMovieWatchList
+				.Include(l => l.User)
+				.Include(l => l.Movie)
+				.Where(r => r.UserId == userId)
+				.OrderByDescending(l => l.AddedOn)
+				.Select(l => new UserRecentActivityResponse
+				{
+					UserId = l.UserId,
+					TMDBId = l.TMDBId,
+					Type = "WatchList",
+					Id = l.TMDBId.ToString(),
+					PosterPath = l.Movie.PosterPath,
+					Name = l.Movie.Title,
+					Description = $"WatchList {l.Movie.Title}",
+					CreatedOn = l.AddedOn
+				}).ToListAsync(cancellationToken);
 
-            var reviewActivities = await _context.UserReviewMovies
-              .Include(r => r.User)
-              .Include(r => r.Movie)
-              .Where(r => r.UserId == userId)
-              .OrderByDescending(r => r.ReviewedOn)
-              .Select(r => new UserRecentActivityResponse
-               {
-                UserId = r.UserId,
-                 TMDBId = r.TMDBId,
-                 Type = "review",
-                 Id = r.TMDBId.ToString(),
-                 PosterPath = r.Movie.PosterPath,
-                 Name = r.Movie.Title,
-                 Description = r.ReviewBody,
-                 CreatedOn = r.ReviewedOn
-         
-           })
-      .ToListAsync(cancellationToken);
+			var reviewActivities = await _context.UserReviewMovies
+			  .Include(r => r.User)
+			  .Include(r => r.Movie)
+			  .Where(r => r.UserId == userId)
+			  .OrderByDescending(r => r.ReviewedOn)
+			  .Select(r => new UserRecentActivityResponse
+			  {
+				  UserId = r.UserId,
+				  TMDBId = r.TMDBId,
+				  Type = "review",
+				  Id = r.TMDBId.ToString(),
+				  PosterPath = r.Movie.PosterPath,
+				  Name = r.Movie.Title,
+				  Description = r.ReviewBody,
+				  CreatedOn = r.ReviewedOn
+
+			  })
+	  .ToListAsync(cancellationToken);
 
 
-            var rateActivities = await _context.UserRateMovies
-     .Include(r => r.User)
-     .Include(r => r.Movie)
-     .Where(r => r.UserId == userId)
-     .OrderByDescending(r => r.RatedOn)
-     .Select(r => new UserRecentActivityResponse
-     {
-         UserId = r.UserId,
-         TMDBId = r.TMDBId,
-         Type = "rate",
-         Id = r.TMDBId.ToString(),
-         PosterPath = r.Movie.PosterPath,
-         Name = r.Movie.Title,
-         Stars = r.Stars,
-         Description = $"rated {r.Movie.Title} with {r.Stars} stars",
-         CreatedOn = r.RatedOn
-     })
-     .ToListAsync(cancellationToken);
+			var rateActivities = await _context.UserRateMovies
+	 .Include(r => r.User)
+	 .Include(r => r.Movie)
+	 .Where(r => r.UserId == userId)
+	 .OrderByDescending(r => r.RatedOn)
+	 .Select(r => new UserRecentActivityResponse
+	 {
+		 UserId = r.UserId,
+		 TMDBId = r.TMDBId,
+		 Type = "rate",
+		 Id = r.TMDBId.ToString(),
+		 PosterPath = r.Movie.PosterPath,
+		 Name = r.Movie.Title,
+		 Stars = r.Stars,
+		 Description = $"rated {r.Movie.Title} with {r.Stars} stars",
+		 CreatedOn = r.RatedOn
+	 })
+	 .ToListAsync(cancellationToken);
 
-            var allActivities = likeActivities
-                .Concat(WatchListActivities)
-                .Concat(WatchedActivities)
-                .Concat(reviewActivities)
-                .Concat(rateActivities)
-                .OrderByDescending(a => a.CreatedOn)
-                .ToList();
-            return Result.Success<IEnumerable<UserRecentActivityResponse>>(allActivities);
+			var allActivities = likeActivities
+				.Concat(WatchListActivities)
+				.Concat(WatchedActivities)
+				.Concat(reviewActivities)
+				.Concat(rateActivities)
+				.OrderByDescending(a => a.CreatedOn)
+				.ToList();
+			return Result.Success<IEnumerable<UserRecentActivityResponse>>(allActivities);
 
-        }
-        private string GetBaseUrl(string subFolder)
+		}
+		private string GetBaseUrl(string subFolder)
         {
             var request = _httpContextAccessor.HttpContext?.Request;
             if (request == null)
