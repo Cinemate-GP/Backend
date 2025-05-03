@@ -52,28 +52,28 @@ namespace Cinemate.API.Controllers
         }
 
         // GET: api/UserLikeMovie
-        [HttpGet("get-all-followers")]
-        public async Task<IActionResult> GetAllUserFollowers(CancellationToken cancellationToken)
+        [HttpGet("get-all-followers/{userId}")]
+        public async Task<IActionResult> GetAllUserFollowers([FromRoute]string userId, CancellationToken cancellationToken)
         {
-            var result = await _userFollowMovieService.GetAllFollowers(User.GetUserId()!, cancellationToken);
+            var result = await _userFollowMovieService.GetAllFollowers(userId, cancellationToken);
             return Ok(result); // Return 200 OK with the list of liked movies
         }
-        [HttpGet("get-all-following")]
-        public async Task<IActionResult> GetAllUserFollowing(CancellationToken cancellationToken)
+        [HttpGet("get-all-following/{userId}")]
+        public async Task<IActionResult> GetAllUserFollowing([FromRoute] string userId, CancellationToken cancellationToken)
         {
-            var result = await _userFollowMovieService.GetAllFollowing(User.GetUserId()!, cancellationToken);
+            var result = await _userFollowMovieService.GetAllFollowing(userId, cancellationToken);
             return Ok(result); // Return 200 OK with the list of liked movies
         }
-		[HttpGet("count-follow")]
-		public async Task<IActionResult> GetFollowCount(CancellationToken cancellationToken)
+		[HttpGet("count-follow/{userId}")]
+		public async Task<IActionResult> GetFollowCount([FromRoute] string userId, CancellationToken cancellationToken)
 		{
-			var result = await _userFollowMovieService.GetCountFollowersAndFollowingAsync(User.GetUserId()!, cancellationToken);
+			var result = await _userFollowMovieService.GetCountFollowersAndFollowingAsync(userId, cancellationToken);
 			return result.IsSuccess ?  Ok(result.Value) : result.ToProblem();
 		}
-		[HttpPost("follow-details")]
-		public async Task<IActionResult> GetFollowDetails([FromBody] FollowerIdRequest request, CancellationToken cancellationToken)
+		[HttpGet("follow-details/{followId}")]
+		public async Task<IActionResult> GetFollowDetails([FromRoute] string followId, CancellationToken cancellationToken)
 		{
-			var result = await _userFollowMovieService.GetFollowersDetailsAsync(User.GetUserId()!, request, cancellationToken);
+			var result = await _userFollowMovieService.GetFollowersDetailsAsync(User.GetUserId()!, followId, cancellationToken);
 			return result.IsSuccess ? Ok(result.Value) : result.ToProblem();
 		}
 	}
