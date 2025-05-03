@@ -43,6 +43,12 @@ namespace Cinemate.API.Controllers
 			var result = await _movieService.GetMovieRandomAsync(cancellationToken);
 			return Ok(result);
 		}
+		[HttpGet("trending")]
+		public async Task<IActionResult> GetTrendingMovies(CancellationToken cancellationToken)
+		{
+			var result = await _movieService.GetTrendingMoviesAsync(cancellationToken);
+			return Ok(result);
+		}
 		[HttpGet("genres")]
 		public async Task<IActionResult> GetGenera([FromQuery] MovieGeneraRequest? request, CancellationToken cancellationToken)
 		{
@@ -60,6 +66,26 @@ namespace Cinemate.API.Controllers
 		{
 			var result = await _movieService.GetSearchForMovieActorUsersAsync(request, cancellationToken);
 			return Ok(result);
+		}
+
+		[HttpGet("fetch-upcoming")]
+		public async Task<IActionResult> FetchUpcomingMovies(CancellationToken cancellationToken)
+		{
+			var result = await _movieService.FetchAndSaveUpcomingMoviesAsync(cancellationToken);
+			return Ok(new { MoviesAdded = result });
+		}
+
+		[HttpGet("update-ratings")]
+		public async Task<IActionResult> UpdateMovieRatings(CancellationToken cancellationToken)
+		{
+			var result = await _movieService.UpdateMovieRatingsAsync(cancellationToken);
+			return Ok(new { MoviesUpdated = result });
+		}
+		[HttpPost("fetch-new-movie")]
+		public async Task<IActionResult> FetchUpNewMovie([FromBody]int tmdbId, CancellationToken cancellationToken)
+		{
+			var result = await _movieService.FetchAndSaveMovieByTmdbIdAsync(tmdbId, cancellationToken);
+			return Ok(new { MoviesAdded = result });
 		}
 	}
 }

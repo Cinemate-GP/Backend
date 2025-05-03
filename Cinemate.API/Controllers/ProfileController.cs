@@ -122,7 +122,7 @@ namespace Cinemate.API.Controllers
         [HttpGet("RecentActivity")]
         public async Task<IActionResult> GetRecentActivity(CancellationToken cancellationToken)
         {
-            var result = await _profileService.GetAllRecentActivity( cancellationToken);
+            var result = await _profileService.GetAllRecentActivity(User.GetUserId()!, cancellationToken);
             return result.IsSuccess ? Ok(result.Value) : result.ToProblem();
         }
 
