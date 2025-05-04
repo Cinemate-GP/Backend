@@ -35,8 +35,6 @@ namespace Cinemate.Service.Services.Follow_Service
         {
             try
             {
-               
-
                 // Validate input
                 if (request == null || string.IsNullOrEmpty(request.FollowId))
                     return OperationResult.Failure("Invalid follow request.");
@@ -124,7 +122,8 @@ namespace Cinemate.Service.Services.Follow_Service
                                        UserId = user.Id,
                                        FullName = user.FullName,
                                        ProfilePic = user.ProfilePic,
-                                       followedOn = follow.FollowedOn
+                                       followedOn = follow.FollowedOn,
+									   IsFollow = userFollowRepo.Any(uf => uf.UserId == userId && uf.FollowId == user.Id)
                                    }).ToListAsync(cancellationToken);
 
             return followers;
@@ -142,43 +141,32 @@ namespace Cinemate.Service.Services.Follow_Service
                                        UserId = user.Id,
                                        FullName = user.FullName,
                                        ProfilePic = user.ProfilePic,
-                                       followedOn = follow.FollowedOn
+                                       followedOn = follow.FollowedOn,
+									   IsFollow = true
                                    }).ToListAsync(cancellationToken);
 
             return following;
         }
-		public async Task<Result<GetCountFollowersAndFollowingResponse>> GetCountFollowersAndFollowingAsync(string userId, CancellationToken cancellationToken = default)
-		{
-			var userRepo = _unitOfWork.Repository<ApplicationUser>().GetQueryable();
-			var user = await userRepo.FirstOrDefaultAsync(u => u.Id == userId, cancellationToken);
-			if (user == null)
-				return Result.Failure<GetCountFollowersAndFollowingResponse>(UserErrors.UserNotFound);
 
-			var userFollowRepo = _unitOfWork.Repository<UserFollow>().GetQueryable();
-			var followersCount = await userFollowRepo.CountAsync(uf => uf.FollowId == userId, cancellationToken);
-			var followingCount = await userFollowRepo.CountAsync(uf => uf.UserId == userId, cancellationToken);
-			var response = new GetCountFollowersAndFollowingResponse(followersCount, followingCount);
-			return Result.Success(response);
-		}
-		public async Task<Result<FollowerDetailsResponse>> GetFollowersDetailsAsync(string userId, FollowerIdRequest request, CancellationToken cancellationToken = default)
+		public async Task<Result<FollowerDetailsResponse>> GetFollowersDetailsAsync(string userId, string followId, CancellationToken cancellationToken = default)
         {
 			var userRepo = _unitOfWork.Repository<ApplicationUser>().GetQueryable();
 			var user = await userRepo.FirstOrDefaultAsync(u => u.Id == userId, cancellationToken);
 			if (user is null)
 				return Result.Failure<FollowerDetailsResponse>(UserErrors.UserNotFound);
 
-			var follower = await userRepo.FirstOrDefaultAsync(u => u.Id == request.Id, cancellationToken);
+			var follower = await userRepo.FirstOrDefaultAsync(u => u.Id == followId, cancellationToken);
 			if (follower is null)
 				return Result.Failure<FollowerDetailsResponse>(UserErrors.FollowerNotFound);
 
 			var userFollowRepo = _unitOfWork.Repository<UserFollow>().GetQueryable();
-			var isFollowing = await userFollowRepo.AnyAsync(uf => uf.UserId == userId && uf.FollowId == request.Id, cancellationToken);
+			var isFollowing = await userFollowRepo.AnyAsync(uf => uf.UserId == userId && uf.FollowId == followId, cancellationToken);
 
 			var profileService = _serviceProvider.GetRequiredService<IProfileService>();
-			var recentActivity = await profileService.GetAllRecentActivity(request.Id, cancellationToken);
+			var recentActivity = await profileService.GetAllRecentActivity(followId, cancellationToken);
 
 			var response = new FollowerDetailsResponse(
-		        request.Id,
+				followId,
 				follower.FullName,
 				follower.ProfilePic,
 				isFollowing,

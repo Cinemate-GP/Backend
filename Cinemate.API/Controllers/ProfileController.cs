@@ -119,12 +119,18 @@ namespace Cinemate.API.Controllers
 			var result = await _profileService.GetFeedForUserAsync(User.GetUserId()!, cancellationToken);
 			return result.IsSuccess ? Ok(result.Value) : result.ToProblem();
 		}
-        [HttpGet("RecentActivity")]
-        public async Task<IActionResult> GetRecentActivity(CancellationToken cancellationToken)
+		[HttpGet("details/{userId}")]
+		public async Task<IActionResult> GetFollowCount([FromRoute] string userId, CancellationToken cancellationToken)
+		{
+			var result = await _profileService.GetUserDetailsAsync(userId, cancellationToken);
+			return result.IsSuccess ? Ok(result.Value) : result.ToProblem();
+		}
+		
+		[HttpGet("RecentActivity/{userId}")]
+        public async Task<IActionResult> GetRecentActivity([FromRoute] string userId, CancellationToken cancellationToken)
         {
-            var result = await _profileService.GetAllRecentActivity(User.GetUserId()!, cancellationToken);
+            var result = await _profileService.GetAllRecentActivity(userId, cancellationToken);
             return result.IsSuccess ? Ok(result.Value) : result.ToProblem();
         }
-
     }
 }

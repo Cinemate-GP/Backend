@@ -15,7 +15,6 @@ namespace Cinemate.Core.Service_Contract
         Task<OperationResult> DeleteUserFollowAsync(AddFollowRequest response, CancellationToken cancellationToken = default);
         Task<IEnumerable<UserDataFollow>> GetAllFollowers(string UserId, CancellationToken cancellationToken = default);
         Task<IEnumerable<UserDataFollow>> GetAllFollowing(string UserId, CancellationToken cancellationToken = default);
-        Task<Result<GetCountFollowersAndFollowingResponse>> GetCountFollowersAndFollowingAsync(string userId, CancellationToken cancellationToken = default);
         Task<Result<FollowerDetailsResponse>> GetFollowersDetailsAsync(string userId, string followId, CancellationToken cancellationToken = default);
 	}
 }

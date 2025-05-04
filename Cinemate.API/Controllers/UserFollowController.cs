@@ -64,12 +64,6 @@ namespace Cinemate.API.Controllers
             var result = await _userFollowMovieService.GetAllFollowing(userId, cancellationToken);
             return Ok(result); // Return 200 OK with the list of liked movies
         }
-		[HttpGet("count-follow/{userId}")]
-		public async Task<IActionResult> GetFollowCount([FromRoute] string userId, CancellationToken cancellationToken)
-		{
-			var result = await _userFollowMovieService.GetCountFollowersAndFollowingAsync(userId, cancellationToken);
-			return result.IsSuccess ?  Ok(result.Value) : result.ToProblem();
-		}
 		[HttpGet("follow-details/{followId}")]
 		public async Task<IActionResult> GetFollowDetails([FromRoute] string followId, CancellationToken cancellationToken)
 		{

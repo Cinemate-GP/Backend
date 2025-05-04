@@ -8,7 +8,6 @@ namespace Cinemate.Core.Contracts.User_Recent_Activity
 {
     public record UserRecentActivityResponse
     {
-        public string UserId { get; init; }
         public int TMDBId { get; init; }
         public string Type { get; init; }
         public string Id { get; init; }

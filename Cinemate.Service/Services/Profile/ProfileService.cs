@@ -10,6 +10,7 @@ using Cinemate.Core.Contracts.User_WatchList_Movie;
 using Cinemate.Core.Entities;
 using Cinemate.Core.Entities.Auth;
 using Cinemate.Core.Errors.ProfileError;
+using Cinemate.Core.Repository_Contract;
 using Cinemate.Core.Service_Contract;
 using Cinemate.Repository.Abstractions;
 using Cinemate.Repository.Data.Contexts;
@@ -41,8 +42,9 @@ namespace Cinemate.Service.Services.Profile
         private readonly IUserWatchlistMovieService userWatchlistService;
         private readonly IUserfollowService userfollowService;
 		private readonly ApplicationDbContext _context;
-		
-        public ProfileService(UserManager<ApplicationUser> userManager, SignInManager<ApplicationUser> signInManager, IFileService fileService, IHttpContextAccessor httpContextAccessor, IUserLikeMovieService userLikeMovieService, IUserRateMovieService userRateMovieService, IUserReviewMovieService userReviewMovieService, IUserWatchedMovieService userWatchedMovieService, IUserWatchlistMovieService userWatchlistService, IUserfollowService userfollow, ApplicationDbContext context)
+		private readonly IUnitOfWork _unitOfWork;
+
+		public ProfileService(UserManager<ApplicationUser> userManager, SignInManager<ApplicationUser> signInManager, IFileService fileService, IHttpContextAccessor httpContextAccessor, IUserLikeMovieService userLikeMovieService, IUserRateMovieService userRateMovieService, IUserReviewMovieService userReviewMovieService, IUserWatchedMovieService userWatchedMovieService, IUserWatchlistMovieService userWatchlistService, IUserfollowService userfollow, ApplicationDbContext context, IUnitOfWork unitOfWork)
         {
             _userManager = userManager;
             _signInManager = signInManager;
@@ -55,7 +57,8 @@ namespace Cinemate.Service.Services.Profile
             this.userWatchlistService = userWatchlistService;
             this.userfollowService = userfollow;
             _context = context;
-        }
+			_unitOfWork = unitOfWork;
+		}
 
         public async Task<OperationResult> DeleteAsync(CancellationToken cancellationToken = default)
         {
@@ -425,6 +428,35 @@ namespace Cinemate.Service.Services.Profile
 
 			return Result.Success<IEnumerable<FeedResponse>>(allActivities);
 		}
+		public async Task<Result<GetUserDetailsResponse>> GetUserDetailsAsync(string userId, CancellationToken cancellationToken = default)
+		{
+			var userIdToken = _httpContextAccessor.HttpContext?.User?.FindFirstValue(ClaimTypes.NameIdentifier);
+			var userRepo = _unitOfWork.Repository<ApplicationUser>().GetQueryable();
+			var user = await userRepo.FirstOrDefaultAsync(u => u.Id == userId, cancellationToken);
+			if (user == null)
+				return Result.Failure<GetUserDetailsResponse>(UserErrors.UserNotFound);
+
+			var userFollowRepo = _unitOfWork.Repository<UserFollow>().GetQueryable();
+			var followersCount = await userFollowRepo.CountAsync(uf => uf.FollowId == userId, cancellationToken);
+			var followingCount = await userFollowRepo.CountAsync(uf => uf.UserId == userId, cancellationToken);
+
+			var isFollowing = await userFollowRepo.AnyAsync(uf => uf.UserId == userIdToken && uf.FollowId == userId, cancellationToken);
+			var recentActivity = await GetAllRecentActivity(userId, cancellationToken);
+
+			var response = new GetUserDetailsResponse
+			(
+				UserId: userId,
+				FullName: user.FullName!,
+				UserName: user.UserName!,
+				ProfilePic: user.ProfilePic,
+				SameUser: (userId == userIdToken),
+				IsFollowing: isFollowing,
+				FollowersCount: followersCount,
+				FollowingCount: followingCount,
+				UserRecentActivityResponses: recentActivity.Value
+			);
+			return Result.Success(response);
+		}
 		public async Task<Result<IEnumerable<UserRecentActivityResponse>>> GetAllRecentActivity(string userId, CancellationToken cancellationToken = default)
 		{
 			var user = await _userManager.FindByIdAsync(userId);
@@ -438,7 +470,6 @@ namespace Cinemate.Service.Services.Profile
 				.OrderByDescending(l => l.LikedOn)
 				.Select(l => new UserRecentActivityResponse
 				{
-					UserId = l.UserId,
 					TMDBId = l.TMDBId,
 					Type = "like",
 					Id = l.TMDBId.ToString(),
@@ -455,7 +486,6 @@ namespace Cinemate.Service.Services.Profile
 				.OrderByDescending(l => l.WatchedOn)
 				.Select(l => new UserRecentActivityResponse
 				{
-					UserId = l.UserId,
 					TMDBId = l.TMDBId,
 					Type = "Watched",
 					Id = l.TMDBId.ToString(),
@@ -471,7 +501,6 @@ namespace Cinemate.Service.Services.Profile
 				.OrderByDescending(l => l.AddedOn)
 				.Select(l => new UserRecentActivityResponse
 				{
-					UserId = l.UserId,
 					TMDBId = l.TMDBId,
 					Type = "WatchList",
 					Id = l.TMDBId.ToString(),
@@ -488,7 +517,6 @@ namespace Cinemate.Service.Services.Profile
 			  .OrderByDescending(r => r.ReviewedOn)
 			  .Select(r => new UserRecentActivityResponse
 			  {
-				  UserId = r.UserId,
 				  TMDBId = r.TMDBId,
 				  Type = "review",
 				  Id = r.TMDBId.ToString(),
@@ -508,7 +536,6 @@ namespace Cinemate.Service.Services.Profile
 	 .OrderByDescending(r => r.RatedOn)
 	 .Select(r => new UserRecentActivityResponse
 	 {
-		 UserId = r.UserId,
 		 TMDBId = r.TMDBId,
 		 Type = "rate",
 		 Id = r.TMDBId.ToString(),
