@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.Http;
+using System.Net.Http.Json;
 using System.Text;
-using System.Threading.Tasks;
+using System.Text.Json;
 using Cinemate.Core.Service_Contract;
 using Cinemate.Core.Contracts.Movies;
 using Cinemate.Core.Repository_Contract;
@@ -16,6 +18,9 @@ using Cinemate.Core.Contracts.Actors;
 using Cinemate.Core.Contracts.Genres;
 using Cinemate.Core.Abstractions;
 using Cinemate.Core.Contracts.Common;
+using Microsoft.Extensions.Caching.Hybrid;
+using Microsoft.Extensions.Logging;
+using System.Text.Json.Serialization;
 
 namespace Cinemate.Service.Services.Movies
 {
@@ -24,30 +29,52 @@ namespace Cinemate.Service.Services.Movies
 		private readonly IUnitOfWork _unitOfWork;
 		private readonly IMapper _mapper;
 		private readonly ApplicationDbContext _context;
+		private readonly HttpClient _httpClient;
+		private readonly ILogger<MovieService> _logger;
 		private static readonly HashSet<int> _returnedMovieIds = new();
-		public MovieService(IUnitOfWork unitOfWork, IMapper mapper, ApplicationDbContext context)
+		private const string TmdbApiKey = "196fb13a1f9bda525f29ed4e3543de8c";
+		private const string TmdbBaseUrl = "https://api.themoviedb.org/3";
+		private const string OmdbApiKey = "226e9b2d";
+		private const string OmdbBaseUrl = "https://www.omdbapi.com";
+
+		public MovieService(IUnitOfWork unitOfWork, IMapper mapper, ApplicationDbContext context, HybridCache hybridCache, ILogger<MovieService> logger = null)
 		{
 			_unitOfWork = unitOfWork;
 			_mapper = mapper;
 			_context = context;
+			_httpClient = new HttpClient();
+			_logger = logger;
 		}
 		public async Task<IEnumerable<MoviesTopTenResponse>> GetMovieTopTenAsync(CancellationToken cancellationToken = default)
 		{
-			var movieRepository = _unitOfWork.Repository<Movie>();
-			var allMovies = await movieRepository.GetAllAsync();
-			var response = allMovies
-				.Where(m => m.Popularity != null && m.IsDeleted != true && m.PosterPath != null && m.Trailer != null)
-				.OrderByDescending(m => m.Popularity)
-				.Take(10)
-				.Select(m => new MoviesTopTenResponse(
+			try
+			{
+				var response = await _httpClient.GetAsync($"{TmdbBaseUrl}/trending/movie/week?api_key={TmdbApiKey}", cancellationToken);
+				response.EnsureSuccessStatusCode();
+
+				var content = await response.Content.ReadFromJsonAsync<TmdbTrendingResponse>(cancellationToken: cancellationToken);
+
+				if (content?.Results == null || !content.Results.Any())
+					return Enumerable.Empty<MoviesTopTenResponse>();
+
+				var tmdbIds = content.Results.Select(m => m.Id).Take(10).ToList();
+
+				var movies = await _context.Movies
+					.Where(m => tmdbIds.Contains(m.TMDBId) && !m.IsDeleted && m.PosterPath != null && m.Trailer != null)
+					.ToListAsync(cancellationToken);
+
+				return movies.Select(m => new MoviesTopTenResponse(
 					m.TMDBId,
 					m.Title,
 					m.PosterPath,
 					m.IMDBRating,
 					m.MPA
 				)).ToList();
-
-			return response;
+			}
+			catch (Exception ex)
+			{
+				return Enumerable.Empty<MoviesTopTenResponse>();
+			}
 		}
 		public async Task<IEnumerable<MoviesTopTenResponse>> GetMovieTopTenRatedAsync(CancellationToken cancellationToken = default)
 		{
@@ -93,9 +120,9 @@ namespace Cinemate.Service.Services.Movies
 				.GetQueryable()
 				.FirstOrDefaultAsync(w => w.UserId == userId && w.TMDBId == tmdbid, cancellationToken);
 
-				var userStarMovie = await _unitOfWork.Repository<UserRateMovie>()
-				.GetQueryable()
-				.FirstOrDefaultAsync(w => w.UserId == userId && w.TMDBId == tmdbid, cancellationToken);
+			var userStarMovie = await _unitOfWork.Repository<UserRateMovie>()
+			.GetQueryable()
+			.FirstOrDefaultAsync(w => w.UserId == userId && w.TMDBId == tmdbid, cancellationToken);
 
 			var watchedMovie = await _unitOfWork.Repository<UserWatchedMovie>()
 				.GetQueryable()
@@ -129,6 +156,7 @@ namespace Cinemate.Service.Services.Movies
 			var response = new MovieDetailsResponse(
 				movie.TMDBId,
 				movie.Title,
+				movie.LogoPath,
 				movie.Overview,
 				movie.Tagline,
 				movie.PosterPath,
@@ -141,7 +169,7 @@ namespace Cinemate.Service.Services.Movies
 				movie.RottenTomatoesRating,
 				movie.MetacriticRating,
 				movie.MPA,
-				userStarMovie?.Stars,  
+				userStarMovie?.Stars,
 				likedMovie != null,
 				watcheListMovie != null,
 				watchedMovie != null,
@@ -154,18 +182,18 @@ namespace Cinemate.Service.Services.Movies
 		}
 		public async Task<IEnumerable<MovieDetailsRandomResponse>> GetMovieRandomAsync(CancellationToken cancellationToken = default)
 		{
-			var movieRepository = _unitOfWork.Repository<Movie>();
-			var allMovies = await movieRepository.GetAllAsync();
-			var top100Movies = allMovies
-				.Where(m => m.Popularity != null && m.IsDeleted != true && m.PosterPath != null && m.Trailer != null)
+			var top100Movies = _context.Movies
+				.Where(m => m.Popularity != null && m.IsDeleted != true && m.PosterPath != null && m.Trailer != null /*&& m.Popularity >= 20.0*/ && m.ReleaseDate.Value.Year > 1990)
+				.ToList()
 				.OrderByDescending(m => m.Popularity)
+				.OrderByDescending(m => m.ReleaseDate.Value.Year)
 				.Take(100)
 				.ToList();
 
 			var availableMovies = top100Movies.Where(m => !_returnedMovieIds.Contains(m.TMDBId)).ToList();
 			var movieIds = availableMovies
 				.OrderBy(_ => Guid.NewGuid())
-				.Take(3)
+				.Take(10)
 				.Select(m => m.TMDBId)
 				.ToList();
 
@@ -181,10 +209,11 @@ namespace Cinemate.Service.Services.Movies
 			return randomMovies.Select(m => new MovieDetailsRandomResponse(
 				m.TMDBId,
 				m.Title,
+				m.LogoPath,
 				m.Tagline,
 				m.PosterPath,
 				m.BackdropPath,
-				m.IMDBRating,
+				m.IMDBRating == null ? "0.0/10" : m.IMDBRating,
 				m.Runtime,
 				m.ReleaseDate,
 				m.Language,
@@ -195,93 +224,107 @@ namespace Cinemate.Service.Services.Movies
 				))
 			)).ToList();
 		}
-		public async Task<IEnumerable<MoviesTopTenResponse>> GetMovieBasedOnGeneraAsync(MovieGeneraRequest? request, CancellationToken cancellationToken = default)
+		public async Task<IEnumerable<MovieTrendingResponse>> GetTrendingMoviesAsync(CancellationToken cancellationToken = default)
 		{
-			if (request == null || string.IsNullOrWhiteSpace(request.Genere))
+			try
 			{
-				var top100ByYear = await _context.Movies
-					.Where(m => m.ReleaseDate != null && m.IsDeleted != true)
-					.OrderByDescending(m => m.ReleaseDate)
-					.Take(100)
+				var response = await _httpClient.GetAsync($"{TmdbBaseUrl}/trending/movie/week?api_key={TmdbApiKey}", cancellationToken);
+				response.EnsureSuccessStatusCode();
+
+				var content = await response.Content.ReadFromJsonAsync<TmdbTrendingResponse>(cancellationToken: cancellationToken);
+
+				if (content?.Results == null || !content.Results.Any())
+					return Enumerable.Empty<MovieTrendingResponse>();
+
+				var tmdbIds = content.Results.Select(m => m.Id).Take(10).ToList();
+
+				var movies = await _context.Movies
+					.Include(m => m.MovieGenres)
+					.ThenInclude(mg => mg.Genre)
+					.Where(m => tmdbIds.Contains(m.TMDBId) && !m.IsDeleted)
 					.ToListAsync(cancellationToken);
 
-				var randomMovies = top100ByYear
-					.OrderBy(_ => Guid.NewGuid())
-					.Take(10)
-					.ToList();
+				return movies.Select(m => new MovieTrendingResponse(
+					m.TMDBId,
+					m.Title,
+					m.LogoPath,
+					m.Tagline,
+					m.PosterPath,
+					m.BackdropPath,
+					m.IMDBRating == null ? "0.0/10" : m.IMDBRating,
+					m.Runtime,
+					m.ReleaseDate,
+					m.Language,
+					m.Trailer,
+					m.MovieGenres.Select(mg => new GenresDetails(
+						mg.Genre.Id,
+						mg.Genre.Name!
+					))
+				)).ToList();
+			}
+			catch (Exception ex)
+			{
+				return Enumerable.Empty<MovieTrendingResponse>();
+			}
+		}
 
-				return randomMovies.Select(m => new MoviesTopTenResponse(
+		public async Task<IEnumerable<MoviesTopTenResponse>> GetMovieBasedOnGeneraAsync(MovieGeneraRequest? request, CancellationToken cancellationToken = default)
+		{
+			IQueryable<Movie> query;
+			if (request == null || string.IsNullOrWhiteSpace(request.Genere))
+				query = _context.Movies.Where(m => m.ReleaseDate != null && !m.IsDeleted);
+			else
+			{
+				var genreName = request.Genere.Trim();
+				query = _context.Movies
+					.Where(m => m.MovieGenres.Any(mg => mg.Genre.Name == genreName) && m.ReleaseDate != null && !m.IsDeleted);
+			}
+
+			var movies = await query
+				.OrderByDescending(m => m.ReleaseDate)
+				.Select(m => new MoviesTopTenResponse(
 					m.TMDBId,
 					m.Title,
 					m.PosterPath,
 					m.IMDBRating,
 					m.MPA
-				)).ToList();
-			}
-			var genre = await _context.Genres
-				.FirstOrDefaultAsync(g => g.Name == request.Genere, cancellationToken);
-
-			var top50MoviesByYear = await _context.Movies
-				.Include(m => m.MovieGenres)
-				.Where(m => m.MovieGenres.Any(mg => mg.GenreId == genre.Id) && m.ReleaseDate != null)
-				.OrderByDescending(m => m.ReleaseDate)
-				.Take(50)
+				))
+				.AsNoTracking()
+				.Take(100)
 				.ToListAsync(cancellationToken);
 
-			var availableMovies = top50MoviesByYear
-				.Where(m => !_returnedMovieIds.Contains(m.TMDBId))
-				.ToList();
-
-			var selectedMovies = availableMovies
+			var randomMovies = movies
 				.OrderBy(_ => Guid.NewGuid())
 				.Take(10)
 				.ToList();
 
-			foreach (var movie in selectedMovies)
-				_returnedMovieIds.Add(movie.TMDBId);
-
-			var response = selectedMovies.Select(m => new MoviesTopTenResponse(
-				m.TMDBId,
-				m.Title,
-				m.PosterPath,
-				m.IMDBRating,
-				m.MPA
-			)).ToList();
-			return response;
+			return randomMovies;
 		}
 		public async Task<PaginatedList<MoviesTopTenResponse>> GetPaginatedMovieBasedAsync(RequestFilters request, CancellationToken cancellationToken = default)
 		{
 			var query = _context.Movies
-				.Where(m => m.IsDeleted != true && m.PosterPath != null && m.Trailer != null)
+				.Where(m => !m.IsDeleted && m.PosterPath != null && m.Trailer != null)
 				.AsQueryable();
-
 			if (!string.IsNullOrEmpty(request.SearchValue))
-				query = query.Where(m => m.Title!.Contains(request.SearchValue));
-
+				query = query.Where(m => m.Title.Contains(request.SearchValue));
 			if (!string.IsNullOrEmpty(request.MPA))
-				query = query.Where(m => m.MPA!.Contains(request.MPA));
-
+				query = query.Where(m => m.MPA.Contains(request.MPA));
 			if (!string.IsNullOrEmpty(request.Gener))
 				query = query.Where(m => m.MovieGenres.Any(mg => mg.Genre.Name == request.Gener));
-
 			if (!string.IsNullOrEmpty(request.Year))
 				query = query.Where(m => m.ReleaseDate.HasValue && m.ReleaseDate.Value.Year.ToString().Contains(request.Year));
-
 			query = request.SortDirection == SortDirection.Descending
-				? query.OrderByDescending(m => m.Popularity)
-					.ThenByDescending(m => m.ReleaseDate!.Value.Year)
-				: query.OrderBy(m => m.Popularity)
-					.ThenByDescending(m => m.ReleaseDate!.Value.Year);
-
+				? query.OrderByDescending(m => m.Popularity).OrderByDescending(m => m.ReleaseDate.Value.Year)
+				: query.OrderBy(m => m.Popularity).OrderByDescending(m => m.ReleaseDate.Value.Year);
 			var movies = query
-				   .Select(m => new MoviesTopTenResponse(
-					   m.TMDBId,
-					   m.Title,
-					   m.PosterPath,
-					   m.IMDBRating,
-					   m.MPA
-				   )).AsNoTracking();
-
+				.Select(m => new MoviesTopTenResponse(
+					m.TMDBId,
+					m.Title,
+					m.PosterPath,
+					m.IMDBRating,
+					m.MPA
+				))
+				.AsNoTracking();
 			var response = await PaginatedList<MoviesTopTenResponse>.CreateAsync(
 				movies,
 				request.PageNumber,
@@ -297,24 +340,28 @@ namespace Cinemate.Service.Services.Movies
 
 			var searchTerm = request.SearchValue.Trim().ToLower();
 			var movieResults = await _context.Movies
-				.Where(m => m.Title != null && m.Title.ToLower().Contains(searchTerm) && ((m.PosterPath != null) || (m.Trailer != null)) && m.IsDeleted != true)
+				.Where(m => m.Title != null && m.Title.ToLower().Contains(searchTerm) && (m.PosterPath != null || m.Trailer != null) && !m.IsDeleted)
 				.Take(50)
 				.Select(m => new SearchResponse(
 					m.TMDBId.ToString(),
-					m.Title!,
+					m.Title,
 					m.PosterPath ?? string.Empty,
 					"Movie"
-				)).AsNoTracking().ToListAsync(cancellationToken);
+				))
+				.AsNoTracking()
+				.ToListAsync(cancellationToken);
 
 			var actorResults = await _context.Casts
 				.Where(c => c.Name != null && c.Name.ToLower().Contains(searchTerm))
 				.Take(50)
 				.Select(c => new SearchResponse(
 					c.CastId.ToString(),
-					c.Name!,
+					c.Name,
 					c.ProfilePath ?? string.Empty,
 					"Actor"
-				)).AsNoTracking().ToListAsync(cancellationToken);
+				))
+				.AsNoTracking()
+				.ToListAsync(cancellationToken);
 
 			var userResults = await _context.Users
 				.Where(u => u.FullName.ToLower().Contains(searchTerm) && !u.IsDisabled)
@@ -324,7 +371,9 @@ namespace Cinemate.Service.Services.Movies
 					u.FullName,
 					u.ProfilePic ?? string.Empty,
 					"User"
-				)).AsNoTracking().ToListAsync(cancellationToken);
+				))
+				.AsNoTracking()
+				.ToListAsync(cancellationToken);
 
 			var combinedResults = movieResults
 				.Concat(actorResults)
@@ -332,6 +381,591 @@ namespace Cinemate.Service.Services.Movies
 				.ToList();
 
 			return Result.Success<IEnumerable<SearchResponse>>(combinedResults);
+		}
+		public async Task<int> UpdateMovieRatingsAsync(CancellationToken cancellationToken = default)
+		{
+			try
+			{
+				// Get all movies that have IMDB IDs but might have missing or outdated ratings
+				var movies = await _context.Movies
+					.Where(m => m.IMDBId > 0 && !m.IsDeleted)
+					.ToListAsync(cancellationToken);
+
+				int updatedMoviesCount = 0;
+
+				// Process each movie
+				foreach (var movie in movies)
+				{
+					// Format IMDB ID with tt prefix
+					string imdbId = $"tt{movie.IMDBId.ToString().PadLeft(7, '0')}";
+
+					// Fetch ratings from OMDB API
+					var omdbResponse = await _httpClient.GetAsync($"{OmdbBaseUrl}/?i={imdbId}&apikey={OmdbApiKey}", cancellationToken);
+					if (!omdbResponse.IsSuccessStatusCode)
+						continue;
+
+					var omdbData = await omdbResponse.Content.ReadFromJsonAsync<OmdbResponse>(cancellationToken: cancellationToken);
+					if (omdbData == null)
+						continue;
+
+					// Extract ratings
+					string imdbRating = !string.IsNullOrEmpty(omdbData.ImdbRating) ? omdbData.ImdbRating + "/10" : null;
+					string mpa = omdbData.Rated;
+
+					// Extract Rotten Tomatoes and Metacritic ratings if available
+					string rottenTomatoesRating = null;
+					string metacriticRating = null;
+
+					if (omdbData.Ratings != null)
+					{
+						var rtRating = omdbData.Ratings.FirstOrDefault(r => r.Source == "Rotten Tomatoes");
+						rottenTomatoesRating = rtRating?.Value;
+
+						var mcRating = omdbData.Ratings.FirstOrDefault(r => r.Source == "Metacritic");
+						metacriticRating = mcRating?.Value;
+					}
+
+					// Check if any rating has changed
+					bool hasChanged = movie.IMDBRating != imdbRating ||
+									movie.RottenTomatoesRating != rottenTomatoesRating ||
+									movie.MetacriticRating != metacriticRating ||
+									(string.IsNullOrEmpty(movie.MPA) && !string.IsNullOrEmpty(mpa));
+
+					if (hasChanged)
+					{
+						movie.IMDBRating = imdbRating;
+						movie.RottenTomatoesRating = rottenTomatoesRating;
+						movie.MetacriticRating = metacriticRating;
+
+						if (string.IsNullOrEmpty(movie.MPA) && !string.IsNullOrEmpty(mpa))
+							movie.MPA = mpa;
+
+						updatedMoviesCount++;
+						_logger?.LogInformation($"Updated ratings for movie {movie.TMDBId} - {movie.Title}");
+					}
+				}
+				await _context.SaveChangesAsync(cancellationToken);
+				return updatedMoviesCount;
+			}
+			catch (Exception ex)
+			{
+				_logger?.LogError(ex, "Error updating movie ratings");
+				return 0;
+			}
+		}
+		public async Task<int> FetchAndSaveUpcomingMoviesAsync(CancellationToken cancellationToken = default)
+		{
+			try
+			{
+				// Fetch upcoming movies from TMDB discover API
+				var response = await _httpClient.GetAsync(
+					$"{TmdbBaseUrl}/discover/movie?api_key={TmdbApiKey}&primary_release_date.gte=2024-12-28&primary_release_date.lte=2024-12-28&sort_by=primary_release_date.desc",
+					cancellationToken);
+				response.EnsureSuccessStatusCode();
+
+				var content = await response.Content.ReadFromJsonAsync<TmdbUpcomingResponse>(cancellationToken: cancellationToken);
+
+				if (content?.Results == null || !content.Results.Any())
+					return 0;
+
+				int addedMoviesCount = 0;
+
+				foreach (var upcomingMovie in content.Results)
+				{
+					var existingMovie = await _context.Movies
+						.FirstOrDefaultAsync(m => m.TMDBId == upcomingMovie.Id, cancellationToken);
+
+					if (existingMovie != null)
+					{
+						_logger?.LogInformation($"Found existing movie {upcomingMovie.Id} - {upcomingMovie.Title}. Stopping processing.");
+						break;
+					}
+
+					var movieDetailsResponse = await _httpClient.GetAsync($"{TmdbBaseUrl}/movie/{upcomingMovie.Id}?api_key={TmdbApiKey}", cancellationToken);
+					if (!movieDetailsResponse.IsSuccessStatusCode)
+						continue;
+
+					var movieDetails = await movieDetailsResponse.Content.ReadFromJsonAsync<TmdbUpcomingMovie>(cancellationToken: cancellationToken);
+					if (movieDetails == null)
+						continue;
+
+					string trailerUrl = null;
+					var videosResponse = await _httpClient.GetAsync($"{TmdbBaseUrl}/movie/{upcomingMovie.Id}/videos?api_key={TmdbApiKey}", cancellationToken);
+					if (videosResponse.IsSuccessStatusCode)
+					{
+						var videos = await videosResponse.Content.ReadFromJsonAsync<TmdbVideosResponse>(cancellationToken: cancellationToken);
+						if (videos?.Results != null && videos.Results.Any())
+						{
+							var officialTrailer = videos.Results.FirstOrDefault(v =>
+								v.Site.Equals("YouTube", StringComparison.OrdinalIgnoreCase) &&
+								v.Type.Equals("Trailer", StringComparison.OrdinalIgnoreCase) &&
+								v.Official);
+
+							if (officialTrailer == null)
+							{
+								officialTrailer = videos.Results.FirstOrDefault(v =>
+									v.Site.Equals("YouTube", StringComparison.OrdinalIgnoreCase) &&
+									v.Type.Equals("Trailer", StringComparison.OrdinalIgnoreCase));
+							}
+
+							if (officialTrailer == null)
+							{
+								officialTrailer = videos.Results.FirstOrDefault(v =>
+									v.Site.Equals("YouTube", StringComparison.OrdinalIgnoreCase) &&
+									v.Type.Equals("Teaser", StringComparison.OrdinalIgnoreCase));
+							}
+
+							if (officialTrailer == null)
+							{
+								officialTrailer = videos.Results.FirstOrDefault(v =>
+									v.Site.Equals("YouTube", StringComparison.OrdinalIgnoreCase));
+							}
+
+							if (officialTrailer != null)
+							{
+								trailerUrl = officialTrailer.Key;
+							}
+						}
+					}
+
+					//if (string.IsNullOrEmpty(trailerUrl))
+					//{
+					//	_logger?.LogInformation($"Skipping movie {upcomingMovie.Id} - {upcomingMovie.Title} because no trailer is available.");
+					//	continue;
+					//}
+
+					var creditsResponse = await _httpClient.GetAsync($"{TmdbBaseUrl}/movie/{upcomingMovie.Id}/credits?api_key={TmdbApiKey}", cancellationToken);
+					var credits = creditsResponse.IsSuccessStatusCode
+						? await creditsResponse.Content.ReadFromJsonAsync<TmdbCreditsResponse>(cancellationToken: cancellationToken)
+						: null;
+
+					string logoPath = null;
+					var imagesResponse = await _httpClient.GetAsync($"{TmdbBaseUrl}/movie/{upcomingMovie.Id}/images?api_key={TmdbApiKey}", cancellationToken);
+					if (imagesResponse.IsSuccessStatusCode)
+					{
+						var images = await imagesResponse.Content.ReadFromJsonAsync<TmdbImagesResponse>(cancellationToken: cancellationToken);
+						var englishLogo = images?.Logos?.FirstOrDefault(l => l.Iso_639_1 == "en");
+						logoPath = englishLogo?.FilePath;
+					}
+
+					string imdbId = movieDetails.ImdbId;
+					string imdbRating = null;
+					string rottenTomatoesRating = null;
+					string metacriticRating = null;
+					string mpa = null;
+
+					if (!string.IsNullOrEmpty(imdbId))
+					{
+						var omdbResponse = await _httpClient.GetAsync($"{OmdbBaseUrl}/?i={imdbId}&apikey={OmdbApiKey}", cancellationToken);
+						if (omdbResponse.IsSuccessStatusCode)
+						{
+							var omdbData = await omdbResponse.Content.ReadFromJsonAsync<OmdbResponse>(cancellationToken: cancellationToken);
+							if (omdbData != null)
+							{
+								imdbRating = omdbData.ImdbRating + "/10";
+								mpa = omdbData.Rated;
+
+								if (omdbData.Ratings != null)
+								{
+									var rtRating = omdbData.Ratings.FirstOrDefault(r => r.Source == "Rotten Tomatoes");
+									rottenTomatoesRating = rtRating?.Value;
+
+									var mcRating = omdbData.Ratings.FirstOrDefault(r => r.Source == "Metacritic");
+									metacriticRating = mcRating?.Value;
+								}
+							}
+						}
+					}
+
+					var movie = new Movie
+					{
+						TMDBId = upcomingMovie.Id,
+						IMDBId = !string.IsNullOrEmpty(imdbId) ? int.Parse(imdbId.Replace("tt", "")) : 0,
+						Title = upcomingMovie.Title,
+						Overview = upcomingMovie.Overview,
+						ReleaseDate = !string.IsNullOrEmpty(upcomingMovie.ReleaseDate) ? DateOnly.Parse(upcomingMovie.ReleaseDate) : null,
+						Runtime = movieDetails.Runtime,
+						Language = upcomingMovie.OriginalLanguage,
+						PosterPath = upcomingMovie.PosterPath,
+						BackdropPath = upcomingMovie.BackdropPath,
+						Trailer = trailerUrl,
+						Budget = movieDetails.Budget,
+						Revenue = movieDetails.Revenue,
+						Status = movieDetails.Status,
+						Tagline = movieDetails.Tagline,
+						IMDBRating = imdbRating,
+						RottenTomatoesRating = rottenTomatoesRating,
+						MetacriticRating = metacriticRating,
+						MPA = mpa,
+						Popularity = upcomingMovie.Popularity,
+						LogoPath = logoPath,
+						IsDeleted = false
+					};
+
+					await _context.Movies.AddAsync(movie, cancellationToken);
+
+					if (movieDetails.Genres != null)
+					{
+						foreach (var genre in movieDetails.Genres)
+						{
+							var existingGenre = await _context.Genres
+								.FirstOrDefaultAsync(g => g.Id == genre.Id, cancellationToken);
+
+							if (existingGenre == null)
+							{
+								existingGenre = new Genre
+								{
+									Id = genre.Id,
+									Name = genre.Name
+								};
+								await _context.Genres.AddAsync(existingGenre, cancellationToken);
+							}
+
+							var movieGenre = new MovieGenre
+							{
+								TMDBId = movie.TMDBId,
+								GenreId = genre.Id,
+								Movie = movie,
+								Genre = existingGenre
+							};
+							await _context.MovieGenres.AddAsync(movieGenre, cancellationToken);
+						}
+					}
+
+					if (credits != null)
+					{
+						var peopleToAdd = new List<(int Id, string Name, string Role, string Department, string ProfilePath, int? Gender, double? Popularity, bool IsCast, string Character)>();
+
+						if (credits.Cast != null)
+						{
+							foreach (var castMember in credits.Cast)
+							{
+								peopleToAdd.Add((castMember.Id, castMember.Name, castMember.Character, castMember.KnownForDepartment,
+									castMember.ProfilePath, castMember.Gender, castMember.Popularity, true, castMember.Character));
+							}
+						}
+
+						if (credits.Crew != null)
+						{
+							var importantJobs = new HashSet<string> { "Director", "Writer", "Editor", "Producer" };
+
+							foreach (var crewMember in credits.Crew.Where(c => importantJobs.Contains(c.Job)))
+							{
+								if (!peopleToAdd.Any(p => p.Id == crewMember.Id))
+								{
+									peopleToAdd.Add((crewMember.Id, crewMember.Name, crewMember.Job, crewMember.Department,
+										crewMember.ProfilePath, crewMember.Gender, crewMember.Popularity, false, crewMember.Department));
+								}
+							}
+						}
+
+						var topPeople = peopleToAdd
+							.OrderByDescending(p => p.Popularity)
+							.Take(25)
+							.ToList();
+
+						foreach (var person in topPeople)
+						{
+							var existingCast = await _context.Casts
+								.FirstOrDefaultAsync(c => c.CastId == person.Id, cancellationToken);
+
+							if (existingCast == null)
+							{
+								var castDetailsResponse = await _httpClient.GetAsync($"{TmdbBaseUrl}/person/{person.Id}?api_key={TmdbApiKey}", cancellationToken);
+								var castDetails = castDetailsResponse.IsSuccessStatusCode
+									? await castDetailsResponse.Content.ReadFromJsonAsync<TmdbPersonResponse>(cancellationToken: cancellationToken)
+									: null;
+
+								existingCast = new Cast
+								{
+									CastId = person.Id,
+									Name = person.Name,
+									ProfilePath = person.ProfilePath,
+									Gender = person.Gender,
+									Popularity = person.Popularity,
+									KnownForDepartment = person.Department,
+									Biography = castDetails?.Biography,
+									BirthDay = !string.IsNullOrEmpty(castDetails?.Birthday) ? DateOnly.Parse(castDetails.Birthday) : null,
+									DeathDay = !string.IsNullOrEmpty(castDetails?.Deathday) ? DateOnly.Parse(castDetails.Deathday) : null,
+									PlaceOfBirth = castDetails?.PlaceOfBirth
+								};
+								await _context.Casts.AddAsync(existingCast, cancellationToken);
+							}
+
+							var castMovie = new CastMovie
+							{
+								CastId = person.Id,
+								TmdbId = movie.TMDBId,
+								Role = person.IsCast ? "cast" : "crew",
+								Extra = person.IsCast ? person.Character : person.Department,
+								Movie = movie,
+								Cast = existingCast
+							};
+							await _context.CastMovie.AddAsync(castMovie, cancellationToken);
+						}
+					}
+
+					addedMoviesCount++;
+				}
+
+				await _context.SaveChangesAsync(cancellationToken);
+				_logger?.LogInformation($"Added {addedMoviesCount} new upcoming movies to database");
+				return addedMoviesCount;
+			}
+			catch (Exception ex)
+			{
+				_logger?.LogError(ex, "Error fetching and saving upcoming movies");
+				return 0;
+			}
+		}
+		public async Task<int> FetchAndSaveMovieByTmdbIdAsync(int tmdbId, CancellationToken cancellationToken = default)
+		{
+			try
+			{
+				var existingMovie = await _context.Movies
+					.FirstOrDefaultAsync(m => m.TMDBId == tmdbId, cancellationToken);
+
+				if (existingMovie != null)
+				{
+					_logger?.LogInformation($"Movie with TMDB ID {tmdbId} already exists in database.");
+					return 0;
+				}
+
+				// Fetch detailed movie info from TMDB
+				var movieDetailsResponse = await _httpClient.GetAsync($"{TmdbBaseUrl}/movie/{tmdbId}?api_key={TmdbApiKey}", cancellationToken);
+				if (!movieDetailsResponse.IsSuccessStatusCode)
+				{
+					_logger?.LogWarning($"Failed to fetch movie details for TMDB ID {tmdbId}.");
+					return 0;
+				}
+
+				var movieDetails = await movieDetailsResponse.Content.ReadFromJsonAsync<TmdbUpcomingMovie>(cancellationToken: cancellationToken);
+				if (movieDetails == null)
+				{
+					_logger?.LogWarning($"No movie details returned for TMDB ID {tmdbId}.");
+					return 0;
+				}
+
+				// Fetch movie videos to get trailer
+				string trailerUrl = null;
+				var videosResponse = await _httpClient.GetAsync($"{TmdbBaseUrl}/movie/{tmdbId}/videos?api_key={TmdbApiKey}", cancellationToken);
+				if (videosResponse.IsSuccessStatusCode)
+				{
+					var videos = await videosResponse.Content.ReadFromJsonAsync<TmdbVideosResponse>(cancellationToken: cancellationToken);
+					if (videos?.Results != null && videos.Results.Any())
+					{
+						var officialTrailer = videos.Results.FirstOrDefault(v =>
+							v.Site.Equals("YouTube", StringComparison.OrdinalIgnoreCase) &&
+							v.Type.Equals("Trailer", StringComparison.OrdinalIgnoreCase) &&
+							v.Official);
+
+						if (officialTrailer == null)
+						{
+							officialTrailer = videos.Results.FirstOrDefault(v =>
+								v.Site.Equals("YouTube", StringComparison.OrdinalIgnoreCase) &&
+								v.Type.Equals("Trailer", StringComparison.OrdinalIgnoreCase));
+						}
+
+						if (officialTrailer == null)
+						{
+							officialTrailer = videos.Results.FirstOrDefault(v =>
+								v.Site.Equals("YouTube", StringComparison.OrdinalIgnoreCase) &&
+								v.Type.Equals("Teaser", StringComparison.OrdinalIgnoreCase));
+						}
+
+						if (officialTrailer == null)
+						{
+							officialTrailer = videos.Results.FirstOrDefault(v =>
+								v.Site.Equals("YouTube", StringComparison.OrdinalIgnoreCase));
+						}
+
+						if (officialTrailer != null)
+						{
+							trailerUrl = officialTrailer.Key;
+						}
+					}
+				}
+				if (string.IsNullOrEmpty(trailerUrl))
+					_logger?.LogInformation($"Skipping movie with TMDB ID {tmdbId} because no trailer is available.");
+
+				// Fetch movie credits to get cast information
+				var creditsResponse = await _httpClient.GetAsync($"{TmdbBaseUrl}/movie/{tmdbId}/credits?api_key={TmdbApiKey}", cancellationToken);
+				var credits = creditsResponse.IsSuccessStatusCode
+					? await creditsResponse.Content.ReadFromJsonAsync<TmdbCreditsResponse>(cancellationToken: cancellationToken)
+					: null;
+
+				string logoPath = null;
+				var imagesResponse = await _httpClient.GetAsync($"{TmdbBaseUrl}/movie/{tmdbId}/images?api_key={TmdbApiKey}", cancellationToken);
+				if (imagesResponse.IsSuccessStatusCode)
+				{
+					var images = await imagesResponse.Content.ReadFromJsonAsync<TmdbImagesResponse>(cancellationToken: cancellationToken);
+					var englishLogo = images?.Logos?.FirstOrDefault(l => l.Iso_639_1 == "en");
+					logoPath = englishLogo?.FilePath;
+				}
+
+				string imdbId = movieDetails.ImdbId;
+				string imdbRating = null;
+				string rottenTomatoesRating = null;
+				string metacriticRating = null;
+				string mpa = null;
+
+				if (!string.IsNullOrEmpty(imdbId))
+				{
+					var omdbResponse = await _httpClient.GetAsync($"{OmdbBaseUrl}/?i={imdbId}&apikey={OmdbApiKey}", cancellationToken);
+					if (omdbResponse.IsSuccessStatusCode)
+					{
+						var omdbData = await omdbResponse.Content.ReadFromJsonAsync<OmdbResponse>(cancellationToken: cancellationToken);
+						if (omdbData != null)
+						{
+							imdbRating = !string.IsNullOrEmpty(omdbData.ImdbRating) ? omdbData.ImdbRating + "/10" : null;
+							mpa = omdbData.Rated;
+
+							if (omdbData.Ratings != null)
+							{
+								var rtRating = omdbData.Ratings.FirstOrDefault(r => r.Source == "Rotten Tomatoes");
+								rottenTomatoesRating = rtRating?.Value;
+
+								var mcRating = omdbData.Ratings.FirstOrDefault(r => r.Source == "Metacritic");
+								metacriticRating = mcRating?.Value;
+							}
+						}
+					}
+				}
+
+				// Create new movie entity
+				var movie = new Movie
+				{
+					TMDBId = tmdbId,
+					IMDBId = !string.IsNullOrEmpty(imdbId) ? int.Parse(imdbId.Replace("tt", "")) : 0,
+					Title = movieDetails.Title,
+					Overview = movieDetails.Overview,
+					ReleaseDate = !string.IsNullOrEmpty(movieDetails.ReleaseDate) ? DateOnly.Parse(movieDetails.ReleaseDate) : null,
+					Runtime = movieDetails.Runtime,
+					Language = movieDetails.OriginalLanguage,
+					PosterPath = movieDetails.PosterPath,
+					BackdropPath = movieDetails.BackdropPath,
+					Trailer = trailerUrl,
+					Budget = movieDetails.Budget,
+					Revenue = movieDetails.Revenue,
+					Status = movieDetails.Status,
+					Tagline = movieDetails.Tagline,
+					IMDBRating = imdbRating,
+					RottenTomatoesRating = rottenTomatoesRating,
+					MetacriticRating = metacriticRating,
+					MPA = mpa,
+					Popularity = movieDetails.Popularity,
+					LogoPath = logoPath,
+					IsDeleted = false
+				};
+				await _context.Movies.AddAsync(movie, cancellationToken);
+
+				if (movieDetails.Genres != null)
+				{
+					foreach (var genre in movieDetails.Genres)
+					{
+						var existingGenre = await _context.Genres
+							.FirstOrDefaultAsync(g => g.Id == genre.Id, cancellationToken);
+
+						if (existingGenre == null)
+						{
+							existingGenre = new Genre
+							{
+								Id = genre.Id,
+								Name = genre.Name
+							};
+							await _context.Genres.AddAsync(existingGenre, cancellationToken);
+						}
+
+						var movieGenre = new MovieGenre
+						{
+							TMDBId = movie.TMDBId,
+							GenreId = genre.Id,
+							Movie = movie,
+							Genre = existingGenre
+						};
+						await _context.MovieGenres.AddAsync(movieGenre, cancellationToken);
+					}
+				}
+				if (credits != null)
+				{
+					var peopleToAdd = new List<(int Id, string Name, string Role, string Department, string ProfilePath, int? Gender, double? Popularity, bool IsCast, string Character)>();
+
+					if (credits.Cast != null)
+					{
+						foreach (var castMember in credits.Cast)
+						{
+							peopleToAdd.Add((castMember.Id, castMember.Name, castMember.Character, castMember.KnownForDepartment,
+								castMember.ProfilePath, castMember.Gender, castMember.Popularity, true, castMember.Character));
+						}
+					}
+
+					if (credits.Crew != null)
+					{
+						var importantJobs = new HashSet<string> { "Director", "Writer", "Editor", "Producer" };
+						foreach (var crewMember in credits.Crew.Where(c => importantJobs.Contains(c.Job)))
+						{
+							if (!peopleToAdd.Any(p => p.Id == crewMember.Id))
+							{
+								peopleToAdd.Add((crewMember.Id, crewMember.Name, crewMember.Job, crewMember.Department,
+									crewMember.ProfilePath, crewMember.Gender, crewMember.Popularity, false, crewMember.Department));
+							}
+						}
+					}
+
+					var topPeople = peopleToAdd
+						.OrderByDescending(p => p.Popularity)
+						.Take(25)
+						.ToList();
+
+					foreach (var person in topPeople)
+					{
+						var existingCast = await _context.Casts
+							.FirstOrDefaultAsync(c => c.CastId == person.Id, cancellationToken);
+
+						if (existingCast == null)
+						{
+							var castDetailsResponse = await _httpClient.GetAsync($"{TmdbBaseUrl}/person/{person.Id}?api_key={TmdbApiKey}", cancellationToken);
+							var castDetails = castDetailsResponse.IsSuccessStatusCode
+								? await castDetailsResponse.Content.ReadFromJsonAsync<TmdbPersonResponse>(cancellationToken: cancellationToken)
+								: null;
+
+							existingCast = new Cast
+							{
+								CastId = person.Id,
+								Name = person.Name,
+								ProfilePath = person.ProfilePath,
+								Gender = person.Gender,
+								Popularity = person.Popularity,
+								KnownForDepartment = person.Department,
+								Biography = castDetails?.Biography,
+								BirthDay = !string.IsNullOrEmpty(castDetails?.Birthday) ? DateOnly.Parse(castDetails.Birthday) : null,
+								DeathDay = !string.IsNullOrEmpty(castDetails?.Deathday) ? DateOnly.Parse(castDetails.Deathday) : null,
+								PlaceOfBirth = castDetails?.PlaceOfBirth
+							};
+							await _context.Casts.AddAsync(existingCast, cancellationToken);
+						}
+
+						var castMovie = new CastMovie
+						{
+							CastId = person.Id,
+							TmdbId = movie.TMDBId,
+							Role = person.IsCast ? "cast" : "crew",
+							Extra = person.IsCast ? person.Character : person.Department,
+							Movie = movie,
+							Cast = existingCast
+						};
+						await _context.CastMovie.AddAsync(castMovie, cancellationToken);
+					}
+				}
+				await _context.SaveChangesAsync(cancellationToken);
+				_logger?.LogInformation($"Added movie with TMDB ID {tmdbId} to database");
+				return 1;
+			}
+			catch (Exception ex)
+			{
+				_logger?.LogError(ex, $"Error fetching and saving movie with TMDB ID {tmdbId}");
+				return 0;
+			}
 		}
 		private static double ParseImdbRating(string? rating)
 		{
@@ -350,5 +984,140 @@ namespace Cinemate.Service.Services.Movies
 			}
 			return 0;
 		}
+	}
+	// Helper classes for API responses
+	public class TmdbCreditsResponse
+	{
+		[JsonPropertyName("cast")]
+		public List<TmdbCastMember> Cast { get; set; } = new List<TmdbCastMember>();
+
+		[JsonPropertyName("crew")]
+		public List<TmdbCrewMember> Crew { get; set; } = new List<TmdbCrewMember>();
+	}
+	public class TmdbCastMember
+	{
+		[JsonPropertyName("id")]
+		public int Id { get; set; }
+
+		[JsonPropertyName("name")]
+		public string Name { get; set; }
+
+		[JsonPropertyName("character")]
+		public string Character { get; set; }
+
+		[JsonPropertyName("profile_path")]
+		public string ProfilePath { get; set; }
+
+		[JsonPropertyName("gender")]
+		public int? Gender { get; set; }
+
+		[JsonPropertyName("popularity")]
+		public double? Popularity { get; set; }
+
+		[JsonPropertyName("known_for_department")]
+		public string KnownForDepartment { get; set; }
+	}
+
+	public class TmdbCrewMember
+	{
+		[JsonPropertyName("id")]
+		public int Id { get; set; }
+
+		[JsonPropertyName("name")]
+		public string Name { get; set; }
+
+		[JsonPropertyName("job")]
+		public string Job { get; set; }
+
+		[JsonPropertyName("department")]
+		public string Department { get; set; }
+
+		[JsonPropertyName("profile_path")]
+		public string ProfilePath { get; set; }
+
+		[JsonPropertyName("gender")]
+		public int? Gender { get; set; }
+
+		[JsonPropertyName("popularity")]
+		public double? Popularity { get; set; }
+	}
+	public class TmdbPersonResponse
+	{
+		[JsonPropertyName("biography")]
+		public string Biography { get; set; }
+
+		[JsonPropertyName("birthday")]
+		public string Birthday { get; set; }
+
+		[JsonPropertyName("deathday")]
+		public string Deathday { get; set; }
+
+		[JsonPropertyName("place_of_birth")]
+		public string PlaceOfBirth { get; set; }
+	}
+	public class TmdbImagesResponse
+	{
+		[JsonPropertyName("logos")]
+		public List<TmdbLogo> Logos { get; set; } = new List<TmdbLogo>();
+	}
+	public class TmdbLogo
+	{
+		[JsonPropertyName("file_path")]
+		public string FilePath { get; set; }
+
+		[JsonPropertyName("iso_639_1")]
+		public string Iso_639_1 { get; set; }
+	}
+	public class OmdbResponse
+	{
+		[JsonPropertyName("imdbRating")]
+		public string ImdbRating { get; set; }
+
+		[JsonPropertyName("Rated")]
+		public string Rated { get; set; }
+
+		[JsonPropertyName("Ratings")]
+		public List<OmdbRating> Ratings { get; set; } = new List<OmdbRating>();
+	}
+	public class OmdbRating
+	{
+		[JsonPropertyName("Source")]
+		public string Source { get; set; }
+
+		[JsonPropertyName("Value")]
+		public string Value { get; set; }
+	}
+
+	public class TmdbVideosResponse
+	{
+		[JsonPropertyName("results")]
+		public List<TmdbVideo> Results { get; set; } = new List<TmdbVideo>();
+	}
+
+	public class TmdbVideo
+	{
+		[JsonPropertyName("id")]
+		public string Id { get; set; }
+
+		[JsonPropertyName("key")]
+		public string Key { get; set; }
+
+		[JsonPropertyName("name")]
+		public string Name { get; set; }
+
+		[JsonPropertyName("site")]
+		public string Site { get; set; }
+
+		[JsonPropertyName("size")]
+		public int Size { get; set; }
+
+		[JsonPropertyName("type")]
+		public string Type { get; set; }
+
+		[JsonPropertyName("official")]
+		public bool Official { get; set; }
+
+		[JsonPropertyName("published_at")]
+		public string PublishedAt { get; set; }
 	}
 }
