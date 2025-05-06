@@ -87,5 +87,11 @@ namespace Cinemate.API.Controllers
 			var result = await _movieService.FetchAndSaveMovieByTmdbIdAsync(tmdbId, cancellationToken);
 			return Ok(new { MoviesAdded = result });
 		}
+		[HttpGet("fetch-by-popularity")]
+		public async Task<IActionResult> FetchByPopularity(CancellationToken cancellationToken)
+		{
+			var result = await _movieService.FetchMovieBasedOnPopularity(cancellationToken);
+			return Ok(new { MoviesAdded = result });
+		}
 	}
 }
