@@ -88,18 +88,6 @@ namespace Cinemate.API.Controllers
             var watchedMovies = await _profileService.GetAllWatchlist(cancellationToken);
             return Ok(watchedMovies);
         }
-        [HttpGet("GetFollowers")]
-        public async Task<IActionResult> GetFollowers(CancellationToken cancellationToken)
-        {
-            var Follwers = await _profileService.GetAllFollowers(cancellationToken);
-            return Ok(Follwers);
-        }
-        [HttpGet("GetFollowing")]
-        public async Task<IActionResult> GetFollowing(CancellationToken cancellationToken)
-        {
-            var Following = await _profileService.GetAllFollowing(cancellationToken);
-            return Ok(Following);
-        }
         [HttpGet("CountFollowers")]
         public async Task<IActionResult> CountFollowers(CancellationToken cancellationToken)
         {
@@ -119,17 +107,17 @@ namespace Cinemate.API.Controllers
 			var result = await _profileService.GetFeedForUserAsync(User.GetUserId()!, cancellationToken);
 			return result.IsSuccess ? Ok(result.Value) : result.ToProblem();
 		}
-		[HttpGet("details/{userId}")]
-		public async Task<IActionResult> GetFollowCount([FromRoute] string userId, CancellationToken cancellationToken)
+		[HttpGet("details/{userName}")]
+		public async Task<IActionResult> GetFollowCount([FromRoute] string userName, CancellationToken cancellationToken)
 		{
-			var result = await _profileService.GetUserDetailsAsync(userId, cancellationToken);
+			var result = await _profileService.GetUserDetailsAsync(userName, cancellationToken);
 			return result.IsSuccess ? Ok(result.Value) : result.ToProblem();
 		}
 		
-		[HttpGet("RecentActivity/{userId}")]
-        public async Task<IActionResult> GetRecentActivity([FromRoute] string userId, CancellationToken cancellationToken)
+		[HttpGet("RecentActivity/{userName}")]
+        public async Task<IActionResult> GetRecentActivity([FromRoute] string userName, CancellationToken cancellationToken)
         {
-            var result = await _profileService.GetAllRecentActivity(userId, cancellationToken);
+            var result = await _profileService.GetAllRecentActivity(userName, cancellationToken);
             return result.IsSuccess ? Ok(result.Value) : result.ToProblem();
         }
     }
