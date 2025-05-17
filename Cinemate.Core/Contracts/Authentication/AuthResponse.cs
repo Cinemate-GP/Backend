@@ -9,7 +9,7 @@ namespace Cinemate.Core.Contracts.Authentication
 	public record AuthResponse(
 		 string Id,
 		 string? Email,
-		 string? FullName,
+		 string UserName,
          string Token,
 		 int ExpiresIn,
 		 string RefreshToken,

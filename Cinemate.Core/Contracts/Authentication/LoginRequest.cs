@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 namespace Cinemate.Core.Contracts.Authentication
 {
 	public record LoginRequest(
-		string Email,
+		string UserNameOrEmail,
 		string Password
 	);
 }
