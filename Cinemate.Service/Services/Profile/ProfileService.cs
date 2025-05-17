@@ -428,45 +428,43 @@ namespace Cinemate.Service.Services.Profile
 
 			return Result.Success<IEnumerable<FeedResponse>>(allActivities);
 		}
-		public async Task<Result<GetUserDetailsResponse>> GetUserDetailsAsync(string userId, CancellationToken cancellationToken = default)
+		public async Task<Result<GetUserDetailsResponse>> GetUserDetailsAsync(string userName, CancellationToken cancellationToken = default)
 		{
 			var userIdToken = _httpContextAccessor.HttpContext?.User?.FindFirstValue(ClaimTypes.NameIdentifier);
 			var userRepo = _unitOfWork.Repository<ApplicationUser>().GetQueryable();
-			var user = await userRepo.FirstOrDefaultAsync(u => u.Id == userId, cancellationToken);
+			var user = await userRepo.FirstOrDefaultAsync(u => u.UserName == userName, cancellationToken);
 			if (user == null)
 				return Result.Failure<GetUserDetailsResponse>(UserErrors.UserNotFound);
 
 			var userFollowRepo = _unitOfWork.Repository<UserFollow>().GetQueryable();
-			var followersCount = await userFollowRepo.CountAsync(uf => uf.FollowId == userId, cancellationToken);
-			var followingCount = await userFollowRepo.CountAsync(uf => uf.UserId == userId, cancellationToken);
+			var followersCount = await userFollowRepo.CountAsync(uf => uf.FollowId == user.Id, cancellationToken);
+			var followingCount = await userFollowRepo.CountAsync(uf => uf.UserId == user.Id, cancellationToken);
 
-			var isFollowing = await userFollowRepo.AnyAsync(uf => uf.UserId == userIdToken && uf.FollowId == userId, cancellationToken);
-			var recentActivity = await GetAllRecentActivity(userId, cancellationToken);
+			var isFollowing = await userFollowRepo.AnyAsync(uf => uf.UserId == userIdToken && uf.FollowId == user.Id, cancellationToken);
 
 			var response = new GetUserDetailsResponse
 			(
-				UserId: userId,
+				UserId: user.Id,
 				FullName: user.FullName!,
 				UserName: user.UserName!,
 				ProfilePic: user.ProfilePic,
-				SameUser: (userId == userIdToken),
+				SameUser: (user.Id == userIdToken),
 				IsFollowing: isFollowing,
 				FollowersCount: followersCount,
-				FollowingCount: followingCount,
-				UserRecentActivityResponses: recentActivity.Value
+				FollowingCount: followingCount
 			);
 			return Result.Success(response);
 		}
-		public async Task<Result<IEnumerable<UserRecentActivityResponse>>> GetAllRecentActivity(string userId, CancellationToken cancellationToken = default)
+		public async Task<Result<IEnumerable<UserRecentActivityResponse>>> GetAllRecentActivity(string userName, CancellationToken cancellationToken = default)
 		{
-			var user = await _userManager.FindByIdAsync(userId);
+			var user = await _userManager.FindByNameAsync(userName);
 			if (user is null)
 				return Result.Failure<IEnumerable<UserRecentActivityResponse>>(UserErrors.UserNotFound);
 
 			var likeActivities = await _context.UserLikeMovies
 				.Include(l => l.User)
 				.Include(l => l.Movie)
-				.Where(r => r.UserId == userId)
+				.Where(r => r.UserId == user.Id)
 				.OrderByDescending(l => l.LikedOn)
 				.Select(l => new UserRecentActivityResponse
 				{
@@ -482,7 +480,7 @@ namespace Cinemate.Service.Services.Profile
 			var WatchedActivities = await _context.UserWatchedMovies
 				.Include(l => l.User)
 				.Include(l => l.Movie)
-				.Where(r => r.UserId == userId)
+				.Where(r => r.UserId == user.Id)
 				.OrderByDescending(l => l.WatchedOn)
 				.Select(l => new UserRecentActivityResponse
 				{
@@ -497,7 +495,7 @@ namespace Cinemate.Service.Services.Profile
 			var WatchListActivities = await _context.UserMovieWatchList
 				.Include(l => l.User)
 				.Include(l => l.Movie)
-				.Where(r => r.UserId == userId)
+				.Where(r => r.UserId == user.Id)
 				.OrderByDescending(l => l.AddedOn)
 				.Select(l => new UserRecentActivityResponse
 				{
@@ -513,7 +511,7 @@ namespace Cinemate.Service.Services.Profile
 			var reviewActivities = await _context.UserReviewMovies
 			  .Include(r => r.User)
 			  .Include(r => r.Movie)
-			  .Where(r => r.UserId == userId)
+			  .Where(r => r.UserId == user.Id)
 			  .OrderByDescending(r => r.ReviewedOn)
 			  .Select(r => new UserRecentActivityResponse
 			  {
@@ -532,7 +530,7 @@ namespace Cinemate.Service.Services.Profile
 			var rateActivities = await _context.UserRateMovies
 	 .Include(r => r.User)
 	 .Include(r => r.Movie)
-	 .Where(r => r.UserId == userId)
+	 .Where(r => r.UserId == user.Id)
 	 .OrderByDescending(r => r.RatedOn)
 	 .Select(r => new UserRecentActivityResponse
 	 {
@@ -565,27 +563,6 @@ namespace Cinemate.Service.Services.Profile
 
             return $"{request.Scheme}://{request.Host}/images/{subFolder}/";
         }
-
-        public async Task<IEnumerable<UserDataFollow>> GetAllFollowers(CancellationToken cancellationToken = default)
-        {
-            var userId = _httpContextAccessor.HttpContext?.User?.FindFirstValue(ClaimTypes.NameIdentifier);
-            if (string.IsNullOrEmpty(userId))
-                return Enumerable.Empty<UserDataFollow>();
-            var result = await userfollowService.GetAllFollowers(userId,cancellationToken);
-
-            return result.Where(r => r.UserId == userId);
-        }
-
-        public async Task<IEnumerable<UserDataFollow>> GetAllFollowing(CancellationToken cancellationToken = default)
-        {
-            var userId = _httpContextAccessor.HttpContext?.User?.FindFirstValue(ClaimTypes.NameIdentifier);
-            if (string.IsNullOrEmpty(userId))
-                return Enumerable.Empty<UserDataFollow>();
-            var result = await userfollowService.GetAllFollowing(userId, cancellationToken);
-
-            return result.Where(r => r.UserId == userId);
-        }
-
         public async Task<int> CountFollowers(CancellationToken cancellationToken = default)
         {
             var userId = _httpContextAccessor.HttpContext?.User?.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -594,8 +571,6 @@ namespace Cinemate.Service.Services.Profile
             var followers = await userfollowService.GetAllFollowers(userId, cancellationToken);
             return followers.Count();
         }
-
-
         public async Task<int> CountFollowing(CancellationToken cancellationToken = default)
         {
             var userId = _httpContextAccessor.HttpContext?.User?.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -604,7 +579,5 @@ namespace Cinemate.Service.Services.Profile
             var followers = await userfollowService.GetAllFollowing(userId, cancellationToken);
             return followers.Count();
         }
-
-        
     }
 }

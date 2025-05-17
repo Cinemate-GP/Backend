@@ -16,7 +16,6 @@ namespace Cinemate.Core.Contracts.Follow
 		bool SameUser,
 		bool IsFollowing,
 		int FollowersCount,
-		int FollowingCount,
-		IEnumerable<UserRecentActivityResponse> UserRecentActivityResponses
+		int FollowingCount
 	);
 }

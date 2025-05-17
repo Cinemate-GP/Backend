@@ -6,9 +6,8 @@ namespace Cinemate.Core.Contracts.Authentication
 	{
 		public LoginRequestValidator()
 		{
-			RuleFor(x => x.Email)
-				.NotEmpty()
-				.EmailAddress();
+			RuleFor(x => x.UserNameOrEmail)
+				.NotEmpty();
 
 			RuleFor(x => x.Password)
 				.NotEmpty();

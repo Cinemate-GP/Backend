@@ -45,8 +45,16 @@ namespace Cinemate.Service.Services.Authentication
 			_httpContextAccessor = httpContextAccessor;
 			_emailSender = emailSender;
         }
-		public async Task<Result<AuthResponse>> GetTokenAsync(string email, string password, CancellationToken cancellationToken = default)
+		public async Task<Result<AuthResponse>> GetTokenAsync(LoginRequest request, CancellationToken cancellationToken = default)
 		{
+			var user = await _userManager.FindByNameAsync(request.UserNameOrEmail);
+			if (user is null)
+			{
+				user = await _userManager.FindByEmailAsync(request.UserNameOrEmail);
+				if (user is null)
+					return Result.Failure<AuthResponse>(UserErrors.UserNotFound);
+			}
+			var result = await _signInManager.PasswordSignInAsync(user, request.Password, false, false);
 
 			if (await _userManager.FindByEmailAsync(email) is not { } user)
 				return Result.Failure<AuthResponse>(UserErrors.UserEmailNotFound);
@@ -70,7 +78,7 @@ namespace Cinemate.Service.Services.Authentication
 
 				await _userManager.UpdateAsync(user);
 
-				var response = new AuthResponse(user.Id, user.Email, user.FullName,token, expiresIn, refreshToken,user.ProfilePic, refreshTokenExpiration);
+				var response = new AuthResponse(user.Id, user.Email, user.UserName!, token, expiresIn, refreshToken,user.ProfilePic, refreshTokenExpiration);
 
 				return Result.Success(response);
 			}
@@ -113,7 +121,7 @@ namespace Cinemate.Service.Services.Authentication
 
 			await _userManager.UpdateAsync(user);
 
-			var response = new AuthResponse(user.Id, user.Email, user.FullName, newToken, expiresIn, newRefreshToken,user.ProfilePic, refreshTokenExpiration);
+			var response = new AuthResponse(user.Id, user.Email, user.UserName!, newToken, expiresIn, newRefreshToken,user.ProfilePic, refreshTokenExpiration);
 
 			return Result.Success(response);
 		}
@@ -142,7 +150,6 @@ namespace Cinemate.Service.Services.Authentication
             if (emailIsExist)
                 return Result.Failure(UserErrors.DublicatedEmail);
             var user = request.Adapt<ApplicationUser>();
-            user.UserName = request.Email;
 			var result = await _userManager.CreateAsync(user, request.Password);
             if (result.Succeeded)
             {

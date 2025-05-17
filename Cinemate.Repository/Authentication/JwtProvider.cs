@@ -27,8 +27,8 @@ namespace Cinemate.Repository.Authentication
 			Claim[] claims = new Claim[]
 			{
 				new(JwtRegisteredClaimNames.Sub,user.Id),
-				new(JwtRegisteredClaimNames.Email,user.Email!),
-				new(JwtRegisteredClaimNames.GivenName,user.FullName),
+				new(JwtRegisteredClaimNames.Email,user.UserName!),
+				new(JwtRegisteredClaimNames.GivenName,user.UserName!),
 				new(JwtRegisteredClaimNames.Jti,Guid.NewGuid().ToString()),
 				new(nameof(role),JsonSerializer.Serialize(role),JsonClaimValueTypes.JsonArray)
 			};
@@ -54,12 +54,25 @@ namespace Cinemate.Repository.Authentication
 				{
 					IssuerSigningKey = symmetricSecurityKey,
 					ValidateIssuerSigningKey = true,
-					ValidateIssuer = false,
+					ValidateIssuer = false, 
 					ValidateAudience = false,
+					ValidateLifetime = true,
 					ClockSkew = TimeSpan.Zero
 				}, out SecurityToken validatedToken);
 				var jwtToken = (JwtSecurityToken)validatedToken;
-				return jwtToken.Claims.First(x => x.Type == JwtRegisteredClaimNames.Sub).Value;
+				return jwtToken.Claims.FirstOrDefault(x => x.Type == JwtRegisteredClaimNames.Sub)?.Value;
+			}
+			catch (SecurityTokenExpiredException)
+			{
+				try
+				{
+					var jwtToken = tokenHandler.ReadJwtToken(token);
+					return jwtToken.Claims.FirstOrDefault(x => x.Type == JwtRegisteredClaimNames.Sub)?.Value;
+				}
+				catch
+				{
+					return null;
+				}
 			}
 			catch
 			{

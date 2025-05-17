@@ -13,8 +13,8 @@ namespace Cinemate.Core.Service_Contract
     {
         Task<OperationResult> AddUserFollowAsync(AddFollowRequest response, CancellationToken cancellationToken = default);
         Task<OperationResult> DeleteUserFollowAsync(AddFollowRequest response, CancellationToken cancellationToken = default);
-        Task<IEnumerable<UserDataFollow>> GetAllFollowers(string UserId, CancellationToken cancellationToken = default);
-        Task<IEnumerable<UserDataFollow>> GetAllFollowing(string UserId, CancellationToken cancellationToken = default);
-        Task<Result<FollowerDetailsResponse>> GetFollowersDetailsAsync(string userId, string followId, CancellationToken cancellationToken = default);
+        Task<IEnumerable<UserDataFollow>> GetAllFollowers(string userName, CancellationToken cancellationToken = default);
+		Task<IEnumerable<UserDataFollow>> GetAllFollowing(string userName, CancellationToken cancellationToken = default);
+        Task<Result<FollowerDetailsResponse>> GetFollowersDetailsAsync(string userId, string followName, CancellationToken cancellationToken = default);
 	}
 }

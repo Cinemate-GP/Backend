@@ -109,64 +109,72 @@ namespace Cinemate.Service.Services.Follow_Service
                 return OperationResult.Failure("Failed to unfollow user.");
             }
         }
-        public async Task<IEnumerable<UserDataFollow>> GetAllFollowers(string userId, CancellationToken cancellationToken = default)
+        public async Task<IEnumerable<UserDataFollow>> GetAllFollowers(string userName, CancellationToken cancellationToken = default)
         {
+			var userIdToken = _httpContextAccessor.HttpContext?.User?.FindFirstValue(ClaimTypes.NameIdentifier);
             var userFollowRepo = _unitOfWork.Repository<UserFollow>().GetQueryable();
             var userRepo = _unitOfWork.Repository<ApplicationUser>().GetQueryable();
+			var user = await userRepo.FirstOrDefaultAsync(u => u.UserName == userName, cancellationToken);
+			if (user == null)
+				return Enumerable.Empty<UserDataFollow>();
 
             var followers = await (from follow in userFollowRepo
-                                   join user in userRepo on follow.UserId equals user.Id
-                                   where follow.FollowId == userId
+								   join followerUser in userRepo on follow.UserId equals followerUser.Id
+								   where follow.FollowId == user.Id
                                    select new UserDataFollow
                                    {
-                                       UserId = user.Id,
-                                       FullName = user.FullName,
-                                       ProfilePic = user.ProfilePic,
+									   UserId = followerUser.Id,
+									   FullName = followerUser.FullName,
+									   ProfilePic = followerUser.ProfilePic,
                                        followedOn = follow.FollowedOn,
-									   IsFollow = userFollowRepo.Any(uf => uf.UserId == userId && uf.FollowId == user.Id)
+									   IsFollow = userFollowRepo.Any(uf => uf.UserId == userIdToken && uf.FollowId == followerUser.Id)
                                    }).ToListAsync(cancellationToken);
 
             return followers;
         }
-        public async Task<IEnumerable<UserDataFollow>> GetAllFollowing(string userId, CancellationToken cancellationToken = default)
+		public async Task<IEnumerable<UserDataFollow>> GetAllFollowing(string userName, CancellationToken cancellationToken = default)
         {
+			var userIdToken = _httpContextAccessor.HttpContext?.User?.FindFirstValue(ClaimTypes.NameIdentifier);
             var userFollowRepo = _unitOfWork.Repository<UserFollow>().GetQueryable();
             var userRepo = _unitOfWork.Repository<ApplicationUser>().GetQueryable();
+			var user = await userRepo.FirstOrDefaultAsync(u => u.UserName == userName, cancellationToken);
+			if (user == null)
+				return Enumerable.Empty<UserDataFollow>();
 
             var following = await (from follow in userFollowRepo
-                                   join user in userRepo on follow.FollowId equals user.Id
-                                   where follow.UserId == userId
+                                   join followedUser in userRepo on follow.FollowId equals user.Id
+                                   where follow.UserId == user.Id
                                    select new UserDataFollow
                                    {
                                        UserId = user.Id,
                                        FullName = user.FullName,
                                        ProfilePic = user.ProfilePic,
                                        followedOn = follow.FollowedOn,
-									   IsFollow = true
+									   IsFollow = userFollowRepo.Any(uf => uf.UserId == userIdToken && uf.FollowId == user.Id)
                                    }).ToListAsync(cancellationToken);
 
             return following;
         }
 
-		public async Task<Result<FollowerDetailsResponse>> GetFollowersDetailsAsync(string userId, string followId, CancellationToken cancellationToken = default)
+		public async Task<Result<FollowerDetailsResponse>> GetFollowersDetailsAsync(string userId, string followName, CancellationToken cancellationToken = default)
         {
 			var userRepo = _unitOfWork.Repository<ApplicationUser>().GetQueryable();
 			var user = await userRepo.FirstOrDefaultAsync(u => u.Id == userId, cancellationToken);
 			if (user is null)
 				return Result.Failure<FollowerDetailsResponse>(UserErrors.UserNotFound);
 
-			var follower = await userRepo.FirstOrDefaultAsync(u => u.Id == followId, cancellationToken);
+			var follower = await userRepo.FirstOrDefaultAsync(u => u.UserName == followName, cancellationToken);
 			if (follower is null)
 				return Result.Failure<FollowerDetailsResponse>(UserErrors.FollowerNotFound);
 
 			var userFollowRepo = _unitOfWork.Repository<UserFollow>().GetQueryable();
-			var isFollowing = await userFollowRepo.AnyAsync(uf => uf.UserId == userId && uf.FollowId == followId, cancellationToken);
+			var isFollowing = await userFollowRepo.AnyAsync(uf => uf.UserId == userId && uf.FollowId == follower.Id, cancellationToken);
 
 			var profileService = _serviceProvider.GetRequiredService<IProfileService>();
-			var recentActivity = await profileService.GetAllRecentActivity(followId, cancellationToken);
+			var recentActivity = await profileService.GetAllRecentActivity(follower.Id, cancellationToken);
 
 			var response = new FollowerDetailsResponse(
-				followId,
+				follower.Id,
 				follower.FullName,
 				follower.ProfilePic,
 				isFollowing,
