@@ -1,6 +1,7 @@
 ﻿using Cinemate.Core.Contracts.User_Like;
 using Cinemate.Core.Contracts.User_WatchList_Movie;
 using Cinemate.Core.Entities;
+using Cinemate.Core.Entities.Auth;
 using Cinemate.Core.Errors.ProfileError;
 using Cinemate.Core.Repository_Contract;
 using Cinemate.Core.Service_Contract;
@@ -26,63 +27,80 @@ namespace Cinemate.Service.Services.User_Watchlist_Movie
             _httpContextAccessor = httpContextAccessor;
         }
 
-		public async Task<OperationResult> AddUserWatchlistMovieAsync(UserWatchListMovieResponse userWatchlistMovieResponse, CancellationToken cancellationToken = default)
+		public async Task<OperationResult> AddUserWatchlistMovieAsync(UserWatchListMovieResponse request, CancellationToken cancellationToken = default)
 		{
 			try
 			{
 				var userId = _httpContextAccessor.HttpContext?.User?.FindFirstValue(ClaimTypes.NameIdentifier);
-
 				if (string.IsNullOrEmpty(userId))
 					return OperationResult.Failure("Unauthorized user.");
 
+				if (!string.IsNullOrEmpty(request.UserId))
+				{
+					var userRepo = _unitOfWork.Repository<ApplicationUser>().GetQueryable();
+					var requestedUser = await userRepo
+						.FirstOrDefaultAsync(u => u.UserName == request.UserId, cancellationToken);
+
+					if (requestedUser != null)
+						userId = requestedUser.Id;
+				}
 				var existingWatchlistItem = await _unitOfWork.Repository<UserMovieWatchList>()
 					.GetQueryable()
-					.FirstOrDefaultAsync(w => w.UserId == userId && w.TMDBId == userWatchlistMovieResponse.TMDBId, cancellationToken);
+					.FirstOrDefaultAsync(w => w.UserId == userId && w.TMDBId == request.TMDBId, cancellationToken);
 
 				if (existingWatchlistItem is not null)
-				    return OperationResult.Success("movie already in watchlist before.");
+					return OperationResult.Success("Movie already in watchlist.");
 
 				var entity = new UserMovieWatchList
 				{
 					UserId = userId,
-					TMDBId = userWatchlistMovieResponse.TMDBId,
+					TMDBId = request.TMDBId,
 					AddedOn = DateTime.UtcNow
 				};
 
 				await _unitOfWork.Repository<UserMovieWatchList>().AddAsync(entity);
 				await _unitOfWork.CompleteAsync();
 
-				return OperationResult.Success("User added Watchlist successfully.");
+				return OperationResult.Success("Movie added to watchlist successfully.");
 			}
 			catch (Exception ex)
 			{
-				// Log ex if needed
-				return OperationResult.Failure("Failed to add To WatchList.");
+				return OperationResult.Failure($"Failed to add movie to watchlist: {ex.Message}");
 			}
 		}
 
-		public async Task<OperationResult> DeleteUserWatchlistMovieAsync(UserWatchListMovieResponse response, CancellationToken cancellationToken = default)
+		public async Task<OperationResult> DeleteUserWatchlistMovieAsync(UserWatchListMovieResponse request, CancellationToken cancellationToken = default)
         {
             try
             {
-                // For example, delete by UserId + MovieId if they’re unique together
-                var AllWatchlist = await _unitOfWork.Repository<UserMovieWatchList>().GetAllAsync();
+				var userId = _httpContextAccessor.HttpContext?.User?.FindFirstValue(ClaimTypes.NameIdentifier);
+				if (string.IsNullOrEmpty(userId))
+					return OperationResult.Failure("Unauthorized user.");
 
-                // Filter likes by MovieId and UserId
-                var watchList = AllWatchlist
-                            .FirstOrDefault(l => l.TMDBId == response.TMDBId && l.UserId == response.UserId);
+				if (!string.IsNullOrEmpty(request.UserId))
+				{
+					var userRepo = _unitOfWork.Repository<ApplicationUser>().GetQueryable();
+					var requestedUser = await userRepo
+						.FirstOrDefaultAsync(u => u.UserName == request.UserId, cancellationToken);
 
-                if (watchList == null)
-                    return OperationResult.Failure("Movie in the watchlist not found.");
+					if (requestedUser != null)
+						userId = requestedUser.Id;
+				}
+				var watchlistItem = await _unitOfWork.Repository<UserMovieWatchList>()
+					.GetQueryable()
+					.FirstOrDefaultAsync(w => w.TMDBId == request.TMDBId && w.UserId == userId, cancellationToken);
 
-                _unitOfWork.Repository<UserMovieWatchList>().Delete(watchList);
+				if (watchlistItem == null)
+					return OperationResult.Failure("Movie not found in watchlist.");
+
+				_unitOfWork.Repository<UserMovieWatchList>().Delete(watchlistItem);
                 await _unitOfWork.CompleteAsync();
 
-                return OperationResult.Success();
+				return OperationResult.Success("Movie removed from watchlist successfully.");
             }
             catch (Exception ex)
             {
-                return OperationResult.Failure("Failed To Delete movie from the Watchlist");
+				return OperationResult.Failure($"Failed to remove movie from watchlist: {ex.Message}");
             }
         }
 

@@ -1,6 +1,7 @@
 ﻿using Cinemate.Core.Contracts.User_Like;
 using Cinemate.Core.Contracts.User_WatchList_Movie;
 using Cinemate.Core.Entities;
+using Cinemate.Core.Entities.Auth;
 using Cinemate.Core.Errors.ProfileError;
 using Cinemate.Core.Repository_Contract;
 using Cinemate.Core.Service_Contract;
@@ -32,9 +33,17 @@ namespace Cinemate.Service.Services.User_Like_Movie
             try
             {
                 var userId = _httpContextAccessor.HttpContext?.User?.FindFirstValue(ClaimTypes.NameIdentifier);
-
                 if (string.IsNullOrEmpty(userId))
                     return OperationResult.Failure("Unauthorized user.");
+
+				if (!string.IsNullOrEmpty(request.UserId) && request.UserId != userId)
+				{
+					var userRepo = _unitOfWork.Repository<ApplicationUser>().GetQueryable();
+					var requestedUser = await userRepo.FirstOrDefaultAsync(u => u.UserName == request.UserId, cancellationToken);
+
+					if (requestedUser != null)
+						userId = requestedUser.Id;
+				}
 
 				var existingLikedItem = await _unitOfWork.Repository<UserLikeMovie>()
 				.GetQueryable()
@@ -58,33 +67,38 @@ namespace Cinemate.Service.Services.User_Like_Movie
             catch (Exception ex)
             {
                 // Log ex if needed
-                return OperationResult.Failure("Failed to add like.");
+				return OperationResult.Failure($"Failed to add like: {ex.Message}");
             }
         }
 
-
-        public async Task<OperationResult> DeleteUserLikeMovieAsync(UserLikeMovieResponse response, CancellationToken cancellationToken = default)
+		public async Task<OperationResult> DeleteUserLikeMovieAsync(UserLikeMovieResponse request, CancellationToken cancellationToken = default)
         {
             try
             {
-                // For example, delete by UserId + MovieId if they’re unique together
-                var allLikes = await _unitOfWork.Repository<UserLikeMovie>().GetAllAsync();
+				var userId = _httpContextAccessor.HttpContext?.User?.FindFirstValue(ClaimTypes.NameIdentifier);
+				if (string.IsNullOrEmpty(userId))
+					return OperationResult.Failure("Unauthorized user.");
 
-                // Filter likes by MovieId and UserId
-                var like = allLikes
-                            .FirstOrDefault(l => l.TMDBId == response.TMDBId && l.UserId ==response.UserId);
+				if (!string.IsNullOrEmpty(request.UserId))
+				{
+					var userRepo = _unitOfWork.Repository<ApplicationUser>().GetQueryable();
+					var requestedUser = await userRepo.FirstOrDefaultAsync(u => u.UserName == request.UserId, cancellationToken);
+					if (requestedUser != null)
+						userId = requestedUser.Id;
+				}
+
+				var like = await _unitOfWork.Repository<UserLikeMovie>().GetQueryable().FirstOrDefaultAsync(l => l.TMDBId == request.TMDBId && l.UserId == userId, cancellationToken);
 
                 if (like == null)
                     return OperationResult.Failure("Movie like not found.");
 
                 _unitOfWork.Repository<UserLikeMovie>().Delete(like);
                 await _unitOfWork.CompleteAsync();
-
-                return OperationResult.Success();
+				return OperationResult.Success("Movie unliked successfully.");
             }
             catch (Exception ex)
             {
-                return OperationResult.Failure("Failed To Delete Like from the Movie");
+				return OperationResult.Failure($"Failed to delete like from the movie: {ex.Message}");
             }
         }
 

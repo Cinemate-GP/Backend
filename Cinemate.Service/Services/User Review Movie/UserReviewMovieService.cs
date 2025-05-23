@@ -3,6 +3,7 @@ using Cinemate.Core.Contracts.User_Rate_Movie;
 using Cinemate.Core.Contracts.User_Review_Movie;
 using Cinemate.Core.Contracts.User_Watched_Movie;
 using Cinemate.Core.Entities;
+using Cinemate.Core.Entities.Auth;
 using Cinemate.Core.Errors.ProfileError;
 using Cinemate.Core.Repository_Contract;
 using Cinemate.Core.Service_Contract;
@@ -28,59 +29,81 @@ namespace Cinemate.Service.Services.User_Review_Movie
             _httpContextAccessor = httpContextAccessor;
         }
 
-        public async Task<OperationResult> AddUserReviewMovieAsync(UserReviewMovieResponse userReviewMovieResponse, CancellationToken cancellationToken = default)
-        {
-            try
-            {
-                var userId = _httpContextAccessor.HttpContext?.User?.FindFirstValue(ClaimTypes.NameIdentifier);
+		public async Task<OperationResult> AddUserReviewMovieAsync(UserReviewMovieResponse request, CancellationToken cancellationToken = default)
+		{
+			try
+			{
+				var userId = _httpContextAccessor.HttpContext?.User?.FindFirstValue(ClaimTypes.NameIdentifier);
+				if (string.IsNullOrEmpty(userId))
+					return OperationResult.Failure("Unauthorized user.");
 
-                if (string.IsNullOrEmpty(userId))
-                    return OperationResult.Failure("Unauthorized user.");
-                var entity = new UserReviewMovie
-                {
-                    UserId = userReviewMovieResponse.UserId,
-                    TMDBId = userReviewMovieResponse.TMDBId,
-                    ReviewedOn = DateTime.UtcNow,
-                    ReviewBody = userReviewMovieResponse.ReviewBody
-                };
+				if (!string.IsNullOrEmpty(request.UserId))
+				{
+					var userRepo = _unitOfWork.Repository<ApplicationUser>().GetQueryable();
+					var requestedUser = await userRepo.FirstOrDefaultAsync(u => u.UserName == request.UserId, cancellationToken);
 
-                await _unitOfWork.Repository<UserReviewMovie>().AddAsync(entity);
-                await _unitOfWork.CompleteAsync();
+					if (requestedUser != null)
+						userId = requestedUser.Id;
+				}
+				var entity = new UserReviewMovie
+				{
+					UserId = userId,
+					TMDBId = request.TMDBId,
+					ReviewedOn = DateTime.Now,
+					ReviewBody = request.ReviewBody
+				};
 
-                return OperationResult.Success("User Add Review Succefully.");
-            }
-            catch (Exception ex)
-            {
-                return OperationResult.Failure("Fail To Add Review.");
-            }
-        }
+				await _unitOfWork.Repository<UserReviewMovie>().AddAsync(entity);
+				await _unitOfWork.CompleteAsync();
 
-        public async Task<OperationResult> DeleteUserReviewMovieAsync(UserReviewDeleteMovieResponse response, CancellationToken cancellationToken = default)
-        {
-            try
-            {
-                var Reviewes = await _unitOfWork.Repository<UserReviewMovie>().GetAllAsync();
+				return OperationResult.Success("Review added successfully.");
+			}
+			catch (Exception ex)
+			{
+				return OperationResult.Failure($"Failed to add review: {ex.Message}");
+			}
+		}
 
-                var review = Reviewes
-                             .FirstOrDefault(l =>
-                            l.ReviewId == response.ReviewId &&
-                            l.TMDBId == response.TMDBId &&
-                            l.UserId == response.UserId);
-                if (review == null)
-                    return OperationResult.Failure("Movie Reviewed not found.");
+		public async Task<OperationResult> DeleteUserReviewMovieAsync(UserReviewDeleteMovieResponse request, CancellationToken cancellationToken = default)
+		{
+			try
+			{
+				var userId = _httpContextAccessor.HttpContext?.User?.FindFirstValue(ClaimTypes.NameIdentifier);
+				if (string.IsNullOrEmpty(userId))
+					return OperationResult.Failure("Unauthorized user.");
 
-                _unitOfWork.Repository<UserReviewMovie>().Delete(review);
-                await _unitOfWork.CompleteAsync();
+				if (!string.IsNullOrEmpty(request.UserId))
+				{
+					var userRepo = _unitOfWork.Repository<ApplicationUser>().GetQueryable();
+					var requestedUser = await userRepo.FirstOrDefaultAsync(u => u.UserName == request.UserId, cancellationToken);
 
-                return OperationResult.Success();
-            }
-            catch (Exception ex)
-            {
-                return OperationResult.Failure("Failed To Delete Review from the Movie");
-            }
-        }
+					if (requestedUser != null)
+						userId = requestedUser.Id;
+				}
 
-        public async Task<IEnumerable<UserReviewMovieResponseBack>> GetUserReviewMoviesAsync(CancellationToken cancellationToken = default)
+				var review = await _unitOfWork.Repository<UserReviewMovie>()
+					.GetQueryable()
+					.FirstOrDefaultAsync(r =>
+						r.ReviewId == request.ReviewId &&
+						r.TMDBId == request.TMDBId &&
+						r.UserId == userId,
+						cancellationToken);
+
+				if (review == null)
+					return OperationResult.Failure("Review not found.");
+
+				_unitOfWork.Repository<UserReviewMovie>().Delete(review);
+				await _unitOfWork.CompleteAsync();
+
+				return OperationResult.Success("Review deleted successfully.");
+			}
+			catch (Exception ex)
+			{
+				return OperationResult.Failure($"Failed to delete review: {ex.Message}");
+			}
+		}
+
+		public async Task<IEnumerable<UserReviewMovieResponseBack>> GetUserReviewMoviesAsync(CancellationToken cancellationToken = default)
         {
             return await _unitOfWork.Repository<UserReviewMovie>()
                         .GetQueryable() // Assuming this returns IQueryable<UserLikeMovie>

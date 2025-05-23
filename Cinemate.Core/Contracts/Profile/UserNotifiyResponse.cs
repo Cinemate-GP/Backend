@@ -6,16 +6,12 @@ using System.Threading.Tasks;
 
 namespace Cinemate.Core.Contracts.Profile
 {
-	public record FeedResponse
+	public record UserNotifiyResponse
 	(
-		string UserId,
-		string FullName,
+		string FollowerId,
 		string? ProfilePic,
-		string type,
-		string id,
-		string? PosterPath,
-		string? Name,
-		string? Description,
-		DateTime? CreatedOn
+		string? FullName,
+		string Description,
+		bool IsReaded
 	);
 }

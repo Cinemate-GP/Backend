@@ -11,7 +11,9 @@ namespace Cinemate.Core.Contracts.Profile
     (
         string? FullName,
         string? Email,
-        string? Password,
+		string? UserName,
+		string? Bio,
+		string? Password,
         IFormFile? Profile_Image
-        );
+    );
 }
