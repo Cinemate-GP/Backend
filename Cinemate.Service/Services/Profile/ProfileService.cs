@@ -146,7 +146,20 @@ namespace Cinemate.Service.Services.Profile
             if (request.FullName != null)
                 user.FullName = request.FullName;
 
-            if (!string.IsNullOrWhiteSpace(request.Email) && request.Email != user.Email)
+			if (!string.IsNullOrWhiteSpace(request.UserName) && request.UserName != user.UserName)
+			{
+				var userNameIsExsit = await _userManager.FindByNameAsync(request.UserName);
+				if(userNameIsExsit != null)
+					throw new InvalidOperationException("Username already exists.");
+
+				var userNameResult = await _userManager.SetUserNameAsync(user, request.UserName);
+				if (!userNameResult.Succeeded)
+				{
+					var errors = string.Join(", ", userNameResult.Errors.Select(e => e.Description));
+					throw new InvalidOperationException($"Username update failed: {errors}");
+				}
+			}
+			if (!string.IsNullOrWhiteSpace(request.Email) && request.Email != user.Email)
             {
                 var emailResult = await _userManager.SetEmailAsync(user, request.Email);
                 if (!emailResult.Succeeded)
@@ -155,9 +168,11 @@ namespace Cinemate.Service.Services.Profile
                     throw new InvalidOperationException($"Email update failed: {errors}");
                 }
             }
+			if (!string.IsNullOrWhiteSpace(request.Bio))
+				user.Bio = request.Bio;
 
-            // Update password if provided
-            if (!string.IsNullOrWhiteSpace(request.Password))
+			// Update password if provided
+			if (!string.IsNullOrWhiteSpace(request.Password))
             {
                 var token = await _userManager.GeneratePasswordResetTokenAsync(user);
                 var passwordResult = await _userManager.ResetPasswordAsync(user, token, request.Password);
@@ -202,8 +217,10 @@ namespace Cinemate.Service.Services.Profile
             }
             var Updated = new UpdateProfileReauestBack
             {
-                Email = user.Email,
-                Profile_Image = user.ProfilePic,
+				UserName = user.UserName,
+				Email = user.Email,
+				Bio = user.Bio,
+				Profile_Image = user.ProfilePic,
                 FullName = user.FullName,
 
             };
@@ -232,6 +249,7 @@ namespace Cinemate.Service.Services.Profile
 				.Select(l => new
 				{
 					l.UserId,
+					l.User.UserName,
 					UserFullName = l.User.FullName,
 					UserProfilePic = l.User.ProfilePic,
 					l.TMDBId,
@@ -253,7 +271,7 @@ namespace Cinemate.Service.Services.Profile
 			var likeResponses = likeActivities
 				.OrderByDescending(l => l.LikedOn)
 				.Select(l => new FeedResponse(
-					l.UserId,
+					l.UserName!,
 					l.UserFullName,
 					l.UserProfilePic,
 					"like",
@@ -270,9 +288,11 @@ namespace Cinemate.Service.Services.Profile
 				.Select(f => new
 				{
 					f.UserId,
+					FollowerUserName = f.Follower.UserName,
 					FollowerFullName = f.Follower.FullName,
 					FollowerProfilePic = f.Follower.ProfilePic,
 					f.FollowId,
+					FollowedUserName = f.FollowedUser.UserName,
 					FollowedUserFullName = f.FollowedUser.FullName,
 					FollowedUserProfilePic = f.FollowedUser.ProfilePic,
 					f.FollowedOn
@@ -291,11 +311,11 @@ namespace Cinemate.Service.Services.Profile
 			var followResponses = followActivities
 				.OrderByDescending(f => f.FollowedOn)
 				.Select(f => new FeedResponse(
-					f.UserId,
+					f.FollowerUserName!,
 					f.FollowerFullName,
 					f.FollowerProfilePic,
 					"follow",
-					f.FollowId,
+					f.FollowedUserName!,
 					f.FollowedUserProfilePic,
 					f.FollowedUserFullName,
 					$"followed {f.FollowedUserFullName}",
@@ -308,6 +328,7 @@ namespace Cinemate.Service.Services.Profile
 				.Select(r => new
 				{
 					r.UserId,
+					r.User.UserName,
 					UserFullName = r.User.FullName,
 					UserProfilePic = r.User.ProfilePic,
 					r.TMDBId,
@@ -330,7 +351,7 @@ namespace Cinemate.Service.Services.Profile
 			var reviewResponses = reviewActivities
 				.OrderByDescending(r => r.ReviewedOn)
 				.Select(r => new FeedResponse(
-					r.UserId,
+					r.UserName,
 					r.UserFullName,
 					r.UserProfilePic,
 					"review",
@@ -347,6 +368,7 @@ namespace Cinemate.Service.Services.Profile
 				.Select(r => new
 				{
 					r.UserId,
+					r.User.UserName,
 					UserFullName = r.User.FullName,
 					UserProfilePic = r.User.ProfilePic,
 					r.TMDBId,
@@ -369,7 +391,7 @@ namespace Cinemate.Service.Services.Profile
 			var rateResponses = rateActivities
 				.OrderByDescending(r => r.RatedOn)
 				.Select(r => new FeedResponse(
-					r.UserId,
+					r.UserName,
 					r.UserFullName,
 					r.UserProfilePic,
 					"rate",
@@ -380,12 +402,13 @@ namespace Cinemate.Service.Services.Profile
 					r.RatedOn
 				)).ToList();
 
-			// Watched Activities (fixing typo: watcedActivities -> watchedActivities)
+
 			var watchedActivities = await _context.UserWatchedMovies
 				.Where(r => followedUserIds.Contains(r.UserId))
 				.Select(r => new
 				{
 					r.UserId,
+					r.User.UserName,
 					UserFullName = r.User.FullName,
 					UserProfilePic = r.User.ProfilePic,
 					r.TMDBId,
@@ -407,7 +430,7 @@ namespace Cinemate.Service.Services.Profile
 			var watchedResponses = watchedActivities
 				.OrderByDescending(r => r.WatchedOn)
 				.Select(r => new FeedResponse(
-					r.UserId,
+					r.UserName!,
 					r.UserFullName,
 					r.UserProfilePic,
 					"Watched",

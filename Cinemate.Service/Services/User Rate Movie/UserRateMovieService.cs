@@ -31,30 +31,37 @@ namespace Cinemate.Service.Services.User_Rate_Movie
             _httpContextAccessor = httpContextAccessor;
         }
 
-        public async Task<OperationResult> AddUserRateMovieAsync(UserRateMovieResponse userRateMovieResponse, CancellationToken cancellationToken = default)
+		public async Task<OperationResult> AddUserRateMovieAsync(UserRateMovieResponse request, CancellationToken cancellationToken = default)
         {
 			try
 			{
 				var userId = _httpContextAccessor.HttpContext?.User?.FindFirstValue(ClaimTypes.NameIdentifier);
-
 				if (string.IsNullOrEmpty(userId))
 					return OperationResult.Failure("Unauthorized user.");
 
-				if (userRateMovieResponse.Stars < 0 || userRateMovieResponse.Stars > 5)
+				if (!string.IsNullOrEmpty(request.UserId))
 				{
-					return OperationResult.Failure("Rating must be between 1 and 5 stars.");
+					// Check if the userId is a username
+					var userRepo = _unitOfWork.Repository<ApplicationUser>().GetQueryable();
+					var requestedUser = await userRepo
+						.FirstOrDefaultAsync(u => u.UserName == request.UserId, cancellationToken);
+
+					// If user found by username, use that ID
+					if (requestedUser != null)
+						userId = requestedUser.Id;
 				}
+
+				if (request.Stars < 0 || request.Stars > 5)
+					return OperationResult.Failure("Rating must be between 0 and 5 stars.");
 
 				var existingRating = await _unitOfWork.Repository<UserRateMovie>()
 					.GetQueryable()
-					.FirstOrDefaultAsync(r => r.UserId == userRateMovieResponse.UserId &&
-											 r.TMDBId == userRateMovieResponse.TMDBId,
-											 cancellationToken);
+					.FirstOrDefaultAsync(r => r.UserId == userId && r.TMDBId == request.TMDBId, cancellationToken);
 
 				if (existingRating != null)
 				{
-					existingRating.Stars = userRateMovieResponse.Stars;
-					existingRating.RatedOn = DateTime.UtcNow;
+					existingRating.Stars = request.Stars;
+					existingRating.RatedOn = DateTime.Now;
 
 					await _unitOfWork.Repository<UserRateMovie>().Update(existingRating);
 					await _unitOfWork.CompleteAsync();
@@ -65,10 +72,10 @@ namespace Cinemate.Service.Services.User_Rate_Movie
 				{
 					var entity = new UserRateMovie
 					{
-						UserId = userRateMovieResponse.UserId,
-						TMDBId = userRateMovieResponse.TMDBId,
+						UserId = userId,
+						TMDBId = request.TMDBId,
 						RatedOn = DateTime.UtcNow,
-						Stars = userRateMovieResponse.Stars
+						Stars = request.Stars
 					};
 
 					await _unitOfWork.Repository<UserRateMovie>().AddAsync(entity);
@@ -79,30 +86,42 @@ namespace Cinemate.Service.Services.User_Rate_Movie
 			}
 			catch (Exception ex)
             {
-                return OperationResult.Failure("Fail To Rate Movie.");
+				return OperationResult.Failure($"Failed to rate movie: {ex.Message}");
             }
         }
 
-        public async Task<OperationResult> DeleteUserRateMovieAsync(UserRateMovieResponse response, CancellationToken cancellationToken = default)
+		public async Task<OperationResult> DeleteUserRateMovieAsync(UserRateMovieResponse request, CancellationToken cancellationToken = default)
         {
             try
             {
-                var allRated = await _unitOfWork.Repository<UserRateMovie>().GetAllAsync();
+				var userId = _httpContextAccessor.HttpContext?.User?.FindFirstValue(ClaimTypes.NameIdentifier);
+				if (string.IsNullOrEmpty(userId))
+					return OperationResult.Failure("Unauthorized user.");
 
-                var Rated = allRated
-                            .FirstOrDefault(l => l.TMDBId == response.TMDBId && l.UserId == response.UserId);
+				if (!string.IsNullOrEmpty(request.UserId))
+				{
+					var userRepo = _unitOfWork.Repository<ApplicationUser>().GetQueryable();
+					var requestedUser = await userRepo.FirstOrDefaultAsync(u => u.UserName == request.UserId, cancellationToken);
 
-                if (Rated == null)
-                    return OperationResult.Failure("Movie Rate not found.");
+					if (requestedUser != null)
+						userId = requestedUser.Id;
+				}
 
-                _unitOfWork.Repository<UserRateMovie>().Delete(Rated);
+				var rating = await _unitOfWork.Repository<UserRateMovie>()
+					.GetQueryable()
+					.FirstOrDefaultAsync(r => r.TMDBId == request.TMDBId && r.UserId == userId, cancellationToken);
+
+				if (rating == null)
+					return OperationResult.Failure("Movie rating not found.");
+
+				_unitOfWork.Repository<UserRateMovie>().Delete(rating);
                 await _unitOfWork.CompleteAsync();
 
-                return OperationResult.Success();
+				return OperationResult.Success("Movie rating removed successfully.");
             }
             catch (Exception ex)
             {
-                return OperationResult.Failure("Failed To Delete Rate from the Movie");
+				return OperationResult.Failure($"Failed to delete rating: {ex.Message}");
             }
         }
 
@@ -133,26 +152,23 @@ namespace Cinemate.Service.Services.User_Rate_Movie
 			if (userDetails is null)
 				return Result.Failure<IEnumerable<UserRateMovieResponseBack>>(UserErrors.UserNotFound);
 
-			var userRateMovieRepo = _unitOfWork.Repository<UserRateMovie>().GetQueryable();
-			var movieRepo = _unitOfWork.Repository<Movie>().GetQueryable();
-			var userRepo = _unitOfWork.Repository<ApplicationUser>().GetQueryable();
-
-			var ratedMovies = await (from rate in userRateMovieRepo
-									 join movie in movieRepo on rate.TMDBId equals movie.TMDBId
-									 join user in userRepo on rate.UserId equals user.Id
-									 select new UserRateMovieResponseBack
+            var userRateMovie = await _unitOfWork.Repository<UserRateMovie>()
+                .GetQueryable()
+                .Where(ur => ur.UserId == userId)
+                .Select(ur => new UserRateMovieResponseBack
 									 {
-										 UserId = rate.UserId,
-										 TMDBId = rate.TMDBId,
-										 Stars = rate.Stars,
-										 Title = movie.Title,
-										 Poster_path = movie.PosterPath,
-										 FullName = user.FullName,
-										 ProfilePic = user.ProfilePic,
-										 CreatedAt = rate.RatedOn
+					UserId = ur.UserId,
+					Stars = ur.Stars,
+					Title = ur.Movie.Title,
+					TMDBId = ur.Movie.TMDBId,
+					Poster_path = ur.Movie.PosterPath,
+					FullName = ur.User.FullName,
+					ProfilePic = ur.User.ProfilePic,
+					CreatedAt = ur.RatedOn
 									 }).ToListAsync(cancellationToken);
 
-			return Result.Success<IEnumerable<UserRateMovieResponseBack>>(ratedMovies);
+
+			return Result.Success<IEnumerable<UserRateMovieResponseBack>>(userRateMovie);
 		}
 	}
 }

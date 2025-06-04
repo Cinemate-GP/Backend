@@ -10,7 +10,9 @@ namespace Cinemate.Core.Contracts.Profile
     public record UpdateProfileReauestBack
     {
        public string? FullName { get; init; }
+       public string? UserName { get; init; }
        public string? Email { get; init; }
+       public string? Bio { get; init; }
        public string? Profile_Image { get; init; }
     }
 }

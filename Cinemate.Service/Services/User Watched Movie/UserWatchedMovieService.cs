@@ -2,6 +2,7 @@
 using Cinemate.Core.Contracts.User_Watched_Movie;
 using Cinemate.Core.Contracts.User_WatchList_Movie;
 using Cinemate.Core.Entities;
+using Cinemate.Core.Entities.Auth;
 using Cinemate.Core.Errors.ProfileError;
 using Cinemate.Core.Repository_Contract;
 using Cinemate.Core.Service_Contract;
@@ -28,67 +29,82 @@ namespace Cinemate.Service.Services.User_Watched_Movie
             _httpContextAccessor = httpContextAccessor;
         }
 
-        public async Task<OperationResult> AddUserWatchedMovieAsync(UserWatchedMovieResponse userWatchedMovieResponse, CancellationToken cancellationToken = default)
-        {
-            try
-            {
-                var userId = _httpContextAccessor.HttpContext?.User?.FindFirstValue(ClaimTypes.NameIdentifier);
+		public async Task<OperationResult> AddUserWatchedMovieAsync(UserWatchedMovieResponse request, CancellationToken cancellationToken = default)
+		{
+			try
+			{
+				var userId = _httpContextAccessor.HttpContext?.User?.FindFirstValue(ClaimTypes.NameIdentifier);
+				if (string.IsNullOrEmpty(userId))
+					return OperationResult.Failure("Unauthorized user.");
 
-                if (string.IsNullOrEmpty(userId))
-                    return OperationResult.Failure("Unauthorized user.");
-				// Map the response DTO to entity (assuming you have a UserWatchedMovie entity)
+				if (!string.IsNullOrEmpty(request.UserId))
+				{
+					var userRepo = _unitOfWork.Repository<ApplicationUser>().GetQueryable();
+					var requestedUser = await userRepo.FirstOrDefaultAsync(u => u.UserName == request.UserId, cancellationToken);
 
+					if (requestedUser != null)
+						userId = requestedUser.Id;
+				}
 				var existingWatchedlistItem = await _unitOfWork.Repository<UserWatchedMovie>()
-                    .GetQueryable()
-                    .FirstOrDefaultAsync(w => w.UserId == userId && w.TMDBId == userWatchedMovieResponse.TMDBId, cancellationToken);
+					.GetQueryable()
+					.FirstOrDefaultAsync(w => w.UserId == userId && w.TMDBId == request.TMDBId, cancellationToken);
 
 				if (existingWatchedlistItem is not null)
 					return OperationResult.Success("Movie already watched before.");
 
 				var entity = new UserWatchedMovie
-                {
-                    UserId = userWatchedMovieResponse.UserId,
-                    TMDBId = userWatchedMovieResponse.TMDBId,
-                    WatchedOn = DateTime.UtcNow
-                };
+				{
+					UserId = userId,
+					TMDBId = request.TMDBId,
+					WatchedOn = DateTime.Now
+				};
 
-                await _unitOfWork.Repository<UserWatchedMovie>().AddAsync(entity);
-                await _unitOfWork.CompleteAsync();
+				await _unitOfWork.Repository<UserWatchedMovie>().AddAsync(entity);
+				await _unitOfWork.CompleteAsync();
 
-                return OperationResult.Success("User Add Watched Succefully.");
-            }
-            catch (Exception ex)
-            {
-                return OperationResult.Failure("Fail To Add Watched.");
-            }
-        }
+				return OperationResult.Success("Movie marked as watched successfully.");
+			}
+			catch (Exception ex)
+			{
+				return OperationResult.Failure($"Failed to mark movie as watched: {ex.Message}");
+			}
+		}
 
-        public async Task<OperationResult> DeleteUserWatchedMovieAsync(UserWatchedMovieResponse response, CancellationToken cancellationToken = default)
-        {
-            try
-            {
-                // For example, delete by UserId + MovieId if they’re unique together
-                var allWatched = await _unitOfWork.Repository<UserWatchedMovie>().GetAllAsync();
+		public async Task<OperationResult> DeleteUserWatchedMovieAsync(UserWatchedMovieResponse request, CancellationToken cancellationToken = default)
+		{
+			try
+			{
+				var userId = _httpContextAccessor.HttpContext?.User?.FindFirstValue(ClaimTypes.NameIdentifier);
+				if (string.IsNullOrEmpty(userId))
+					return OperationResult.Failure("Unauthorized user.");
 
-                // Filter Watched by MovieId and UserId
-                var Watched = allWatched
-                            .FirstOrDefault(l => l.TMDBId == response.TMDBId && l.UserId == response.UserId);
+				if (!string.IsNullOrEmpty(request.UserId))
+				{
+					var userRepo = _unitOfWork.Repository<ApplicationUser>().GetQueryable();
+					var requestedUser = await userRepo.FirstOrDefaultAsync(u => u.UserName == request.UserId, cancellationToken);
 
-                if (Watched == null)
-                    return OperationResult.Failure("Movie Watched not found.");
+					if (requestedUser != null)
+						userId = requestedUser.Id;
+				}
+				var watchedMovie = await _unitOfWork.Repository<UserWatchedMovie>()
+					.GetQueryable()
+					.FirstOrDefaultAsync(w => w.TMDBId == request.TMDBId && w.UserId == userId, cancellationToken);
 
-                _unitOfWork.Repository<UserWatchedMovie>().Delete(Watched);
-                await _unitOfWork.CompleteAsync();
+				if (watchedMovie == null)
+					return OperationResult.Failure("Movie not found in watched list.");
 
-                return OperationResult.Success();
-            }
-            catch (Exception ex)
-            {
-                return OperationResult.Failure("Failed To Delete Watched from the Movie");
-            }
-        }
+				_unitOfWork.Repository<UserWatchedMovie>().Delete(watchedMovie);
+				await _unitOfWork.CompleteAsync();
 
-        public async Task<IEnumerable<UserWatchedMovieResponseBack>> GetUserWatchedMoviesAsync(CancellationToken cancellationToken = default)
+				return OperationResult.Success("Movie removed from watched list successfully.");
+			}
+			catch (Exception ex)
+			{
+				return OperationResult.Failure($"Failed to remove movie from watched list: {ex.Message}");
+			}
+		}
+
+		public async Task<IEnumerable<UserWatchedMovieResponseBack>> GetUserWatchedMoviesAsync(CancellationToken cancellationToken = default)
         {
             return await _unitOfWork.Repository<UserWatchedMovie>()
                        .GetQueryable() // Assuming this returns IQueryable<UserLikeMovie>
