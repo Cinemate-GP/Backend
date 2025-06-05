@@ -55,13 +55,6 @@ namespace Cinemate.Service.Services.Authentication
 					return Result.Failure<AuthResponse>(UserErrors.UserNotFound);
 			}
 			var result = await _signInManager.PasswordSignInAsync(user, request.Password, false, false);
-
-			if (await _userManager.FindByEmailAsync(email) is not { } user)
-				return Result.Failure<AuthResponse>(UserErrors.UserEmailNotFound);
-
-			var result = await _signInManager.PasswordSignInAsync(user, password, false, false);
-
-
 			if (result.Succeeded)
 			{
 				var userRole = await GetUserRole(user, cancellationToken);
