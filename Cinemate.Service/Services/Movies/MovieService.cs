@@ -38,7 +38,7 @@ namespace Cinemate.Service.Services.Movies
 		private const string OmdbApiKey = "226e9b2d";
 		private const string OmdbBaseUrl = "https://www.omdbapi.com";
 
-		public MovieService(IUnitOfWork unitOfWork, IMapper mapper, ApplicationDbContext context, HybridCache hybridCache, ILogger<MovieService> logger = null)
+		public MovieService(IUnitOfWork unitOfWork, IMapper mapper, ApplicationDbContext context, ILogger<MovieService> logger = null)
 		{
 			_unitOfWork = unitOfWork;
 			_mapper = mapper;
@@ -64,13 +64,7 @@ namespace Cinemate.Service.Services.Movies
 					.Where(m => tmdbIds.Contains(m.TMDBId) && !m.IsDeleted && m.PosterPath != null && m.Trailer != null)
 					.ToListAsync(cancellationToken);
 
-				return movies.Select(m => new MoviesTopTenResponse(
-					m.TMDBId,
-					m.Title,
-					m.PosterPath,
-					m.IMDBRating,
-					m.MPA
-				)).ToList();
+				return _mapper.Map<IEnumerable<MoviesTopTenResponse>>(movies);
 			}
 			catch (Exception ex)
 			{
@@ -81,19 +75,13 @@ namespace Cinemate.Service.Services.Movies
 		{
 			var movieRepository = _unitOfWork.Repository<Movie>();
 			var allMovies = await movieRepository.GetAllAsync();
-			var response = allMovies
+			var filteredMovies = allMovies
 				.Where(m => !string.IsNullOrEmpty(m.IMDBRating) && m.IsDeleted != true && m.PosterPath != null && m.Trailer != null)
 				.OrderByDescending(m => ParseImdbRating(m.IMDBRating))
 				.Take(10)
-				.Select(m => new MoviesTopTenResponse(
-					m.TMDBId,
-					m.Title,
-					m.PosterPath,
-					m.IMDBRating,
-					m.MPA
-				)).ToList();
+				.ToList();
 
-			return response;
+			return _mapper.Map<IEnumerable<MoviesTopTenResponse>>(filteredMovies);
 		}
 		public async Task<Result<MovieDetailsResponse>> GetMovieDetailsAsync(string userId, int tmdbid, CancellationToken cancellationToken = default)
 		{

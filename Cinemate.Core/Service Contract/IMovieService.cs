@@ -22,5 +22,6 @@ namespace Cinemate.Core.Service_Contract
 		Task<int> FetchAndSaveUpcomingMoviesAsync(CancellationToken cancellationToken = default);
 		Task<int> UpdateMovieRatingsAsync(CancellationToken cancellationToken = default);
 		Task<int> FetchAndSaveMovieByTmdbIdAsync(int tmdbId, CancellationToken cancellationToken = default);
+		Task<int> FetchMovieBasedOnPopularity(CancellationToken cancellationToken = default);
 	}
 }
