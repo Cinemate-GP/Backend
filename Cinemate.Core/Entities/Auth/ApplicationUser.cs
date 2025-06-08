@@ -11,6 +11,8 @@ namespace Cinemate.Core.Entities.Auth
         public DateOnly BirthDay { get; set; }
         public DateOnly? JoinedOn { get; set; }
         public bool IsDisabled { get; set; }
+        public bool IsEnableRecentActivity { get; set; }
+        public bool IsEnableFollowerAndFollowing { get; set; }
         public List<RefreshToken> RefreshTokens { get; set; } = [];
         public ICollection<UserCastFollow> FollowedCasts { get; set; } = new HashSet<UserCastFollow>();
 
