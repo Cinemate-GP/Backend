@@ -2,14 +2,11 @@
 using Cinemate.Core.Entities.Auth;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
-using System;
-using System.Collections.Generic;
 using System.IdentityModel.Tokens.Jwt;
 using System.Linq;
 using System.Security.Claims;
 using System.Text;
 using System.Text.Json;
-using System.Threading.Tasks;
 
 namespace Cinemate.Repository.Authentication
 {
@@ -27,7 +24,7 @@ namespace Cinemate.Repository.Authentication
 			Claim[] claims = new Claim[]
 			{
 				new(JwtRegisteredClaimNames.Sub,user.Id),
-				new(JwtRegisteredClaimNames.Email,user.UserName!),
+				new(JwtRegisteredClaimNames.Email,user.Email!),
 				new(JwtRegisteredClaimNames.GivenName,user.UserName!),
 				new(JwtRegisteredClaimNames.Jti,Guid.NewGuid().ToString()),
 				new(nameof(role),JsonSerializer.Serialize(role),JsonClaimValueTypes.JsonArray)
