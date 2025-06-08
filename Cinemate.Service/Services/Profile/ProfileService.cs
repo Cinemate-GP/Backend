@@ -7,7 +7,6 @@ using Cinemate.Core.Contracts.User_Recent_Activity;
 using Cinemate.Core.Contracts.User_Review_Movie;
 using Cinemate.Core.Contracts.User_Watched_Movie;
 using Cinemate.Core.Contracts.User_WatchList_Movie;
-using Cinemate.Core.Entities;
 using Cinemate.Core.Entities.Auth;
 using Cinemate.Core.Errors.ProfileError;
 using Cinemate.Core.Repository_Contract;
@@ -17,13 +16,7 @@ using Cinemate.Repository.Data.Contexts;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Security.Claims;
-using System.Text;
-using System.Threading.Tasks;
-using TechTalk.SpecFlow.Analytics.UserId;
 using static Cinemate.Repository.Errors.Authentication.AuthenticationError;
 using IFileService = Cinemate.Core.Service_Contract.IFileService;
 
@@ -243,9 +236,24 @@ namespace Cinemate.Service.Services.Profile
 
 			var followedUserIds = userFollows.Select(f => f.FollowId).ToList();
 
+			var privacySettings = await _context.Users
+				.Where(u => followedUserIds.Contains(u.Id))
+				.Select(u => new { u.Id, u.IsEnableRecentActivity, u.IsEnableFollowerAndFollowing })
+				.ToListAsync(cancellationToken);
+
+			var userIdsWithHiddenActivity = privacySettings
+				.Where(p => p.IsEnableRecentActivity)
+				.Select(p => p.Id)
+				.ToList();
+
+			var userIdsWithHiddenFollows = privacySettings
+				.Where(p => p.IsEnableFollowerAndFollowing)
+				.Select(p => p.Id)
+				.ToList();
+
 			// Like Activities
 			var likeActivities = await _context.UserLikeMovies
-				.Where(l => followedUserIds.Contains(l.UserId))
+				.Where(l => followedUserIds.Contains(l.UserId) && !userIdsWithHiddenActivity.Contains(l.UserId))
 				.Select(l => new
 				{
 					l.UserId,
@@ -284,7 +292,7 @@ namespace Cinemate.Service.Services.Profile
 
 			// Follow Activities
 			var followActivities = await _context.UserFollows
-				.Where(f => followedUserIds.Contains(f.UserId))
+				.Where(f => followedUserIds.Contains(f.UserId) && !userIdsWithHiddenFollows.Contains(f.UserId))
 				.Select(f => new
 				{
 					f.UserId,
@@ -324,7 +332,7 @@ namespace Cinemate.Service.Services.Profile
 
 			// Review Activities
 			var reviewActivities = await _context.UserReviewMovies
-				.Where(r => followedUserIds.Contains(r.UserId))
+				.Where(r => followedUserIds.Contains(r.UserId) && !userIdsWithHiddenActivity.Contains(r.UserId))
 				.Select(r => new
 				{
 					r.UserId,
@@ -364,7 +372,7 @@ namespace Cinemate.Service.Services.Profile
 
 			// Rate Activities
 			var rateActivities = await _context.UserRateMovies
-				.Where(r => followedUserIds.Contains(r.UserId))
+				.Where(r => followedUserIds.Contains(r.UserId) && !userIdsWithHiddenActivity.Contains(r.UserId))
 				.Select(r => new
 				{
 					r.UserId,
@@ -404,7 +412,7 @@ namespace Cinemate.Service.Services.Profile
 
 
 			var watchedActivities = await _context.UserWatchedMovies
-				.Where(r => followedUserIds.Contains(r.UserId))
+				.Where(r => followedUserIds.Contains(r.UserId) && !userIdsWithHiddenActivity.Contains(r.UserId))
 				.Select(r => new
 				{
 					r.UserId,
@@ -484,6 +492,11 @@ namespace Cinemate.Service.Services.Profile
 			if (user is null)
 				return Result.Failure<IEnumerable<UserRecentActivityResponse>>(UserErrors.UserNotFound);
 
+			var currentUserId = _httpContextAccessor.HttpContext?.User?.FindFirstValue(ClaimTypes.NameIdentifier);
+			bool isOwnProfile = currentUserId == user.Id;
+			if (!isOwnProfile && user.IsEnableRecentActivity)
+				return Result.Success(Enumerable.Empty<UserRecentActivityResponse>());
+
 			var likeActivities = await _context.UserLikeMovies
 				.Include(l => l.User)
 				.Include(l => l.Movie)
@@ -500,7 +513,7 @@ namespace Cinemate.Service.Services.Profile
 					CreatedOn = l.LikedOn
 				}).ToListAsync(cancellationToken);
 
-			var WatchedActivities = await _context.UserWatchedMovies
+			var watchedActivities = await _context.UserWatchedMovies
 				.Include(l => l.User)
 				.Include(l => l.Movie)
 				.Where(r => r.UserId == user.Id)
@@ -515,7 +528,8 @@ namespace Cinemate.Service.Services.Profile
 					Description = $"Watched {l.Movie.Title}",
 					CreatedOn = l.WatchedOn
 				}).ToListAsync(cancellationToken);
-			var WatchListActivities = await _context.UserMovieWatchList
+
+			var watchListActivities = await _context.UserMovieWatchList
 				.Include(l => l.User)
 				.Include(l => l.Movie)
 				.Where(r => r.UserId == user.Id)
@@ -532,75 +546,72 @@ namespace Cinemate.Service.Services.Profile
 				}).ToListAsync(cancellationToken);
 
 			var reviewActivities = await _context.UserReviewMovies
-			  .Include(r => r.User)
-			  .Include(r => r.Movie)
-			  .Where(r => r.UserId == user.Id)
-			  .OrderByDescending(r => r.ReviewedOn)
-			  .Select(r => new UserRecentActivityResponse
-			  {
-				  TMDBId = r.TMDBId,
-				  Type = "review",
-				  Id = r.TMDBId.ToString(),
-				  PosterPath = r.Movie.PosterPath,
-				  Name = r.Movie.Title,
-				  Description = r.ReviewBody,
-				  CreatedOn = r.ReviewedOn
-
-			  })
-	  .ToListAsync(cancellationToken);
-
+				.Include(r => r.User)
+				.Include(r => r.Movie)
+				.Where(r => r.UserId == user.Id)
+				.OrderByDescending(r => r.ReviewedOn)
+				.Select(r => new UserRecentActivityResponse
+				{
+					TMDBId = r.TMDBId,
+					Type = "review",
+					Id = r.TMDBId.ToString(),
+					PosterPath = r.Movie.PosterPath,
+					Name = r.Movie.Title,
+					Description = r.ReviewBody,
+					CreatedOn = r.ReviewedOn
+				}).ToListAsync(cancellationToken);
 
 			var rateActivities = await _context.UserRateMovies
-	 .Include(r => r.User)
-	 .Include(r => r.Movie)
-	 .Where(r => r.UserId == user.Id)
-	 .OrderByDescending(r => r.RatedOn)
-	 .Select(r => new UserRecentActivityResponse
-	 {
-		 TMDBId = r.TMDBId,
-		 Type = "rate",
-		 Id = r.TMDBId.ToString(),
-		 PosterPath = r.Movie.PosterPath,
-		 Name = r.Movie.Title,
-		 Stars = r.Stars,
-		 Description = $"rated {r.Movie.Title} with {r.Stars} stars",
-		 CreatedOn = r.RatedOn
-	 })
-	 .ToListAsync(cancellationToken);
+				.Include(r => r.User)
+				.Include(r => r.Movie)
+				.Where(r => r.UserId == user.Id)
+				.OrderByDescending(r => r.RatedOn)
+				.Select(r => new UserRecentActivityResponse
+				{
+					TMDBId = r.TMDBId,
+					Type = "rate",
+					Id = r.TMDBId.ToString(),
+					PosterPath = r.Movie.PosterPath,
+					Name = r.Movie.Title,
+					Stars = r.Stars,
+					Description = $"rated {r.Movie.Title} with {r.Stars} stars",
+					CreatedOn = r.RatedOn
+				}).ToListAsync(cancellationToken);
 
 			var allActivities = likeActivities
-				.Concat(WatchListActivities)
-				.Concat(WatchedActivities)
+				.Concat(watchListActivities)
+				.Concat(watchedActivities)
 				.Concat(reviewActivities)
 				.Concat(rateActivities)
 				.OrderByDescending(a => a.CreatedOn)
 				.ToList();
 			return Result.Success<IEnumerable<UserRecentActivityResponse>>(allActivities);
-
+		}
+		public async Task<Result> ToggleFollowerAndFollowing(string userName, CancellationToken cancellationToken = default)
+		{
+			var user = await _userManager.FindByNameAsync(userName);
+			if (user is null)
+				return Result.Failure(UserErrors.UserNameNotFound);
+			user.IsEnableFollowerAndFollowing = !user.IsEnableFollowerAndFollowing;
+			await _context.SaveChangesAsync(cancellationToken);
+			return Result.Success();
+		}
+		public async Task<Result> ToggleRecentActivity(string userName, CancellationToken cancellationToken = default)
+		{
+			var user = await _userManager.FindByNameAsync(userName);
+			if (user is null)
+				return Result.Failure(UserErrors.UserNameNotFound);
+			user.IsEnableRecentActivity = !user.IsEnableRecentActivity;
+			await _context.SaveChangesAsync(cancellationToken);
+			return Result.Success();
 		}
 		private string GetBaseUrl(string subFolder)
-        {
-            var request = _httpContextAccessor.HttpContext?.Request;
-            if (request == null)
-                throw new InvalidOperationException("HttpContext is not available.");
+		{
+			var request = _httpContextAccessor.HttpContext?.Request;
+			if (request == null)
+				throw new InvalidOperationException("HttpContext is not available.");
 
-            return $"{request.Scheme}://{request.Host}/images/{subFolder}/";
-        }
-        public async Task<int> CountFollowers(CancellationToken cancellationToken = default)
-        {
-            var userId = _httpContextAccessor.HttpContext?.User?.FindFirstValue(ClaimTypes.NameIdentifier);
-            if (string.IsNullOrEmpty(userId))
-                return 0;
-            var followers = await userfollowService.GetAllFollowers(userId, cancellationToken);
-            return followers.Count();
-        }
-        public async Task<int> CountFollowing(CancellationToken cancellationToken = default)
-        {
-            var userId = _httpContextAccessor.HttpContext?.User?.FindFirstValue(ClaimTypes.NameIdentifier);
-            if (string.IsNullOrEmpty(userId))
-                return 0;
-            var followers = await userfollowService.GetAllFollowing(userId, cancellationToken);
-            return followers.Count();
-        }
-    }
+			return $"{request.Scheme}://{request.Host}/images/{subFolder}/";
+		}
+	}
 }

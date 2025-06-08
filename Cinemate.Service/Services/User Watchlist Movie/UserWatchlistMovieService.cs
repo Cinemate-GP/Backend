@@ -1,4 +1,3 @@
-﻿using Cinemate.Core.Contracts.User_Like;
 using Cinemate.Core.Contracts.User_WatchList_Movie;
 using Cinemate.Core.Entities;
 using Cinemate.Core.Entities.Auth;
@@ -7,12 +6,7 @@ using Cinemate.Core.Repository_Contract;
 using Cinemate.Core.Service_Contract;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Security.Claims;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Cinemate.Service.Services.User_Watchlist_Movie
 {

@@ -11,12 +11,5 @@ namespace Cinemate.Core.Contracts.Follow
         public string UserId { get; init; } 
         public string FollowId { get; init; } 
         public DateTime? FollowedOn { get; init; } = DateTime.UtcNow;
-
-
-
-
-
-
-
     }
 }

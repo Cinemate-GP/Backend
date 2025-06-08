@@ -6,14 +6,8 @@ using Cinemate.Core.Contracts.User_Recent_Activity;
 using Cinemate.Core.Contracts.User_Review_Movie;
 using Cinemate.Core.Contracts.User_Watched_Movie;
 using Cinemate.Core.Contracts.User_WatchList_Movie;
-using Cinemate.Core.Entities;
 using Cinemate.Core.Errors.ProfileError;
 using Cinemate.Repository.Abstractions;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Cinemate.Core.Service_Contract
 {
@@ -28,8 +22,8 @@ namespace Cinemate.Core.Service_Contract
         Task<IEnumerable<UserWatchListMovieResponseBack>> GetAllWatchlist(CancellationToken cancellationToken = default);
 		Task<Result<GetUserDetailsResponse>> GetUserDetailsAsync(string userName, CancellationToken cancellationToken = default);
 		Task<Result<IEnumerable<UserRecentActivityResponse>>> GetAllRecentActivity(string userName, CancellationToken cancellationToken = default);
-        Task<int> CountFollowers(CancellationToken cancellationToken = default);
-        Task<int> CountFollowing(CancellationToken cancellationToken = default);
         Task<Result<IEnumerable<FeedResponse>>> GetFeedForUserAsync(string id, CancellationToken cancellationToken = default);
+        Task<Result> ToggleFollowerAndFollowing(string userName, CancellationToken cancellationToken = default);
+        Task<Result> ToggleRecentActivity(string userName, CancellationToken cancellationToken = default);
 	}
 }
