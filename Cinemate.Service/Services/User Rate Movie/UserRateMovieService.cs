@@ -1,6 +1,4 @@
-﻿using Cinemate.Core.Contracts.User_Like;
 using Cinemate.Core.Contracts.User_Rate_Movie;
-using Cinemate.Core.Contracts.User_Watched_Movie;
 using Cinemate.Core.Entities;
 using Cinemate.Core.Entities.Auth;
 using Cinemate.Core.Errors.ProfileError;
@@ -9,13 +7,7 @@ using Cinemate.Core.Service_Contract;
 using Cinemate.Repository.Abstractions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
-using Org.BouncyCastle.Tls;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Security.Claims;
-using System.Text;
-using System.Threading.Tasks;
 using static Cinemate.Repository.Errors.Authentication.AuthenticationError;
 
 namespace Cinemate.Service.Services.User_Rate_Movie
@@ -89,7 +81,6 @@ namespace Cinemate.Service.Services.User_Rate_Movie
 				return OperationResult.Failure($"Failed to rate movie: {ex.Message}");
             }
         }
-
 		public async Task<OperationResult> DeleteUserRateMovieAsync(UserRateMovieResponse request, CancellationToken cancellationToken = default)
         {
             try
@@ -124,7 +115,6 @@ namespace Cinemate.Service.Services.User_Rate_Movie
 				return OperationResult.Failure($"Failed to delete rating: {ex.Message}");
             }
         }
-
         public async Task<IEnumerable<UserRateMovieResponseBack>> GetUserRateMoviesAsync(CancellationToken cancellationToken = default)
         {
             return await _unitOfWork.Repository<UserRateMovie>()
@@ -142,9 +132,6 @@ namespace Cinemate.Service.Services.User_Rate_Movie
                             ProfilePic = ul.User.ProfilePic
                         })
                         .ToListAsync(cancellationToken);
-
-            // Return the mapped response, not the original `Watched`
-         
         }
 		public async Task<Result<IEnumerable<UserRateMovieResponseBack>>> GetMoviesRatedByUserAsync(string userId, CancellationToken cancellationToken = default)
 		{
