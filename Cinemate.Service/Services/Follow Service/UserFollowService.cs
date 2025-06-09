@@ -1,4 +1,5 @@
 ﻿using Cinemate.Core.Contracts.Follow;
+using Cinemate.Core.Entities;
 using Cinemate.Core.Entities.Auth;
 using Cinemate.Core.Errors.ProfileError;
 using Cinemate.Core.Repository_Contract;
@@ -15,30 +16,28 @@ using static Cinemate.Repository.Errors.Authentication.AuthenticationError;
 
 
 namespace Cinemate.Service.Services.Follow_Service
-{
-    public class UserFollowService : IUserfollowService
+{    public class UserFollowService : IUserfollowService
     {
         private readonly IUnitOfWork _unitOfWork;
         private readonly ApplicationDbContext _context;
         private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly IServiceProvider _serviceProvider;
 		private readonly UserManager<ApplicationUser> _userManager;
-		private readonly IHubContext<NotificationHub> _hubContext;
+		private readonly INotificationService _notificationService;
         public UserFollowService(IUnitOfWork unitOfWork,
            IHttpContextAccessor httpContextAccessor,
            IServiceProvider serviceProvider,
            UserManager<ApplicationUser> userManager,
            ApplicationDbContext context,
-           IHubContext<NotificationHub> hubContext)
+           INotificationService notificationService)
         {
             _unitOfWork = unitOfWork;
             _httpContextAccessor = httpContextAccessor;
             _serviceProvider = serviceProvider;
             _userManager = userManager;
             _context = context;
-            _hubContext = hubContext;
-        }
-        public async Task<OperationResult> AddUserFollowAsync(AddFollowRequest request, CancellationToken cancellationToken = default)
+            _notificationService = notificationService;
+        }        public async Task<OperationResult> AddUserFollowAsync(AddFollowRequest request, CancellationToken cancellationToken = default)
 		{
 			try
 			{
@@ -76,29 +75,8 @@ namespace Cinemate.Service.Services.Follow_Service
 				await _unitOfWork.Repository<UserFollow>().AddAsync(entity);
 				await _unitOfWork.CompleteAsync();
 
-				// After successful follow, send notification
-				var follower = await _userManager.FindByIdAsync(userId);
-				var notification = new Notification
-				{
-					UserId=userToFollow.Id,
-					Message = $"{follower.FullName} started following you",
-					ActionUserId = userId,
-					NotificationType = "Follow"
-				};
-
-				// Save notification to database
-				await _unitOfWork.Repository<Notification>().AddAsync(notification);
-				await _unitOfWork.CompleteAsync();
-
-				// Send real-time notification
-				await _hubContext.Clients.User(userToFollow.Id).SendAsync("ReceiveNotification", new
-				{
-					id = notification.Id,
-					message = notification.Message,
-					profilePic = follower.ProfilePic,
-					fullName = follower.FullName,
-					createdAt = notification.CreatedAt
-				});
+				// Create and send follow notification using the notification service
+				await _notificationService.CreateFollowNotificationAsync(userId, userToFollow.Id, cancellationToken);
 
 				return OperationResult.Success("User followed successfully.");
 			}
@@ -188,7 +166,7 @@ namespace Cinemate.Service.Services.Follow_Service
 				return Result.Failure<IEnumerable<UserDataFollow>>(UserErrors.UserNotFound);
 
 			bool isOwnProfile = userIdToken == user.Id;
-			if (!isOwnProfile && !user.IsEnableFollowerAndFollowing)
+			if (!isOwnProfile && user.IsEnableFollowerAndFollowing)
 				return Result.Failure<IEnumerable<UserDataFollow>>(UserErrors.FollowingHidden);
 
 			var userFollowRepo = _unitOfWork.Repository<UserFollow>().GetQueryable();
