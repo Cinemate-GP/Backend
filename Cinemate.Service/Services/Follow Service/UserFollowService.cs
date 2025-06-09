@@ -16,7 +16,8 @@ using static Cinemate.Repository.Errors.Authentication.AuthenticationError;
 
 
 namespace Cinemate.Service.Services.Follow_Service
-{    public class UserFollowService : IUserfollowService
+{    
+	public class UserFollowService : IUserfollowService
     {
         private readonly IUnitOfWork _unitOfWork;
         private readonly ApplicationDbContext _context;

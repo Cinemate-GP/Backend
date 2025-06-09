@@ -93,5 +93,11 @@ namespace Cinemate.API.Controllers
 			var result = await _profileService.ToggleFollowerAndFollowing(User.GetUserName()!, cancellationToken);
 			return result.IsSuccess ? NoContent() : result.ToProblem();
 		}
+		[HttpGet("privacy")]
+		public async Task<IActionResult> GetPrivacy(CancellationToken cancellationToken)
+		{
+			var result = await _profileService.GetPrivacyAsync(User.GetUserName()!, cancellationToken);
+			return result.IsSuccess ? Ok(result.Value) : result.ToProblem();
+		}
 	}
 }

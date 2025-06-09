@@ -16,6 +16,7 @@ namespace Cinemate.Core.Contracts.Follow
 		bool SameUser,
 		bool IsFollowing,
 		int FollowersCount,
-		int FollowingCount
+		int FollowingCount,
+		int NumberOfMovie
 	);
 }
