@@ -482,8 +482,10 @@ namespace Cinemate.Service.Services.Profile
 				SameUser: (user.Id == userIdToken),
 				IsFollowing: isFollowing,
 				FollowersCount: followersCount,
-				FollowingCount: followingCount
-			);
+				FollowingCount: followingCount,
+				NumberOfMovie: await _context.UserWatchedMovies
+                    .CountAsync(w => w.UserId == user.Id, cancellationToken)
+            );
 			return Result.Success(response);
 		}
 		public async Task<Result<IEnumerable<UserRecentActivityResponse>>> GetAllRecentActivity(string userName, CancellationToken cancellationToken = default)

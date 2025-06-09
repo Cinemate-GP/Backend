@@ -104,22 +104,27 @@ namespace Cinemate.Service.Services.Movies
 				.GetQueryable()
 				.FirstOrDefaultAsync(w => w.UserId == userId && w.TMDBId == tmdbid, cancellationToken);
 
-			var reviews = await _context.UserReviewMovies
-				.Include(r => r.User)
-				.ThenInclude(x => x.RatedMovies)
-				.Where(r => r.TMDBId == tmdbid)
-				.Select(r => new MovieReviewResponse(
-					r.UserId,
-					r.TMDBId,
-					r.User.FullName,
-					r.User.ProfilePic,
-					r.ReviewId,
-					r.ReviewBody,
-					r.ReviewedOn,
-					r.User.RatedMovies.Any(rm => rm.TMDBId == tmdbid) ? r.User.RatedMovies.First(rm => rm.TMDBId == tmdbid).Stars : 0
-				)).ToListAsync(cancellationToken);
+            var reviews = await _context.UserReviewMovies
+    .Include(r => r.User)
+    .ThenInclude(x => x.RatedMovies)
+    .Where(r => r.TMDBId == tmdbid)
+    .Select(r => new MovieReviewResponse(
+        r.UserId,                        // string UserId
+        r.User.UserName,                 // string UserName
+        r.TMDBId,                        // int TMDBId
+        r.User.FullName,                 // string FullName
+        r.User.ProfilePic,               // string? ProfilePic
+        r.ReviewId,                      // int ReviewId
+        r.ReviewBody,                    // string ReviewBody
+        r.ReviewedOn,                    // DateTime ReviewedOn
+        r.User.RatedMovies.Any(rm => rm.TMDBId == tmdbid)
+            ? r.User.RatedMovies.First(rm => rm.TMDBId == tmdbid).Stars
+            : (int?)null                  // int? Stars
+    ))
+    .ToListAsync(cancellationToken);
 
-			var response = movie.Adapt<MovieDetailsResponse>();
+
+            var response = movie.Adapt<MovieDetailsResponse>();
 			response = response with
 			{
 				Stars = userStarMovie?.Stars,
