@@ -27,8 +27,9 @@ namespace Cinemate.Repository.Data.Contexts
 		public DbSet<UserMovieWatchList> UserMovieWatchList { get; set; }
 		public DbSet<CastMovie> CastMovie { get; set; }
 		public DbSet<MovieGenre> MovieGenres { get; set; }
+        public DbSet<Notification> Notifications { get; set; }
 
-		
+
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
 		{

@@ -35,6 +35,7 @@ namespace Cinemate.Service
 			services.AddScoped<IUserReviewMovieService, UserReviewMovieService>();
 			services.AddScoped<IUserWatchlistMovieService, UserWatchlistMovieService>();
 			services.AddScoped<IUserfollowService, UserFollowService>();
+            services.AddScoped<INotificationService, NotificationService>();
             services.AddBackgroundJobsConfig(configuration);
             return services;
 		}

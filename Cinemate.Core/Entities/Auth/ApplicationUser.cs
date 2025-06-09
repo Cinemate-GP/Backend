@@ -28,6 +28,7 @@ namespace Cinemate.Core.Entities.Auth
         public ICollection<UserMovieWatchList> WatchListMovies { get; set; } = new HashSet<UserMovieWatchList>();
 
         public ICollection<UserWatchedMovie> WatchedMovies { get; set; } = new HashSet<UserWatchedMovie>();
+        public ICollection<Notification> Notifications { get; set; } = new HashSet<Notification>();
 
     }
 }

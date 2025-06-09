@@ -19,6 +19,7 @@ namespace Cinemate.API
             builder.Services.AddRepositoryDependencyInjection(builder.Configuration);
             builder.Services.AddCoreDependencyInjection(builder.Configuration);
             builder.Services.AddServicesDependencyInjection(builder.Configuration);
+            builder.Services.AddSignalR();
 
 			var app = builder.Build();
 
@@ -52,6 +53,8 @@ namespace Cinemate.API
 
 
             app.MapControllers();
+            // In the app configuration section
+            app.MapHub<NotificationHub>("/notificationHub");
             app.UseStaticFiles();
             app.Run();
 
