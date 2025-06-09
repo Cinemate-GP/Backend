@@ -9,6 +9,7 @@ namespace Cinemate.Core.Contracts.Movies
 	public record MovieReviewResponse
 	(
 		string UserId,
+		string UserName,
 		int TMDBId,
 		string FullName,
 		string? ProfilePic,

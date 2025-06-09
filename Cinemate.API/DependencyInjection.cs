@@ -8,20 +8,42 @@ using System.Threading.RateLimiting;
 namespace Cinemate.API
 {
 	public static class DependencyInjection
-	{
-		public static IServiceCollection AddAPIDependencies(this IServiceCollection services,
-			IConfiguration configuration)
+	{		
+		public static IServiceCollection AddAPIDependencies(this IServiceCollection services, IConfiguration configuration)
 		{
-			services.AddControllers();
-
+			services.AddControllers();			
 			services.AddCors(options =>
+			{
 				options.AddDefaultPolicy(builder =>
 					builder
+						.WithOrigins(
+							"http://localhost:3000", 
+							"https://localhost:3000",
+							"http://cinemate.runasp.net",
+							"https://cinemate.runasp.net",
+							"https://cinemate-eosin.vercel.app"
+						)
 						.AllowAnyMethod()
 						.AllowAnyHeader()
-						.WithOrigins(configuration.GetSection("AllowedOrigins").Get<string[]>()!)
-				)
-			);
+						.AllowCredentials()
+				);
+				
+				// Additional policy for SignalR specifically
+				options.AddPolicy("SignalRCors", builder =>
+					builder
+						.WithOrigins(
+							"http://localhost:3000", 
+							"https://localhost:3000",
+							"http://cinemate.runasp.net",
+							"https://cinemate.runasp.net",
+							"https://cinemate-eosin.vercel.app"
+						)
+						.AllowAnyMethod()
+						.AllowAnyHeader()
+						.AllowCredentials()
+				);
+			});
+			
 			services.AddSwaggerServices();
             services.AddHttpContextAccessor();
             return services;
