@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using System.Security.Claims;
+using Microsoft.AspNetCore.SignalR;
 using static Cinemate.Repository.Errors.Authentication.AuthenticationError;
 
 
@@ -22,15 +23,22 @@ namespace Cinemate.Service.Services.Follow_Service
         private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly IServiceProvider _serviceProvider;
 		private readonly UserManager<ApplicationUser> _userManager;
-		public UserFollowService(IUnitOfWork unitOfWork, IHttpContextAccessor httpContextAccessor, IServiceProvider serviceProvider, UserManager<ApplicationUser> userManager, ApplicationDbContext context)
-         {
+		private readonly IHubContext<NotificationHub> _hubContext;
+        public UserFollowService(IUnitOfWork unitOfWork,
+           IHttpContextAccessor httpContextAccessor,
+           IServiceProvider serviceProvider,
+           UserManager<ApplicationUser> userManager,
+           ApplicationDbContext context,
+           IHubContext<NotificationHub> hubContext)
+        {
             _unitOfWork = unitOfWork;
             _httpContextAccessor = httpContextAccessor;
             _serviceProvider = serviceProvider;
-			_userManager = userManager;
-			_context = context;
-		}
-		public async Task<OperationResult> AddUserFollowAsync(AddFollowRequest request, CancellationToken cancellationToken = default)
+            _userManager = userManager;
+            _context = context;
+            _hubContext = hubContext;
+        }
+        public async Task<OperationResult> AddUserFollowAsync(AddFollowRequest request, CancellationToken cancellationToken = default)
 		{
 			try
 			{
@@ -67,6 +75,30 @@ namespace Cinemate.Service.Services.Follow_Service
 				};
 				await _unitOfWork.Repository<UserFollow>().AddAsync(entity);
 				await _unitOfWork.CompleteAsync();
+
+				// After successful follow, send notification
+				var follower = await _userManager.FindByIdAsync(userId);
+				var notification = new Notification
+				{
+					UserId=userToFollow.Id,
+					Message = $"{follower.FullName} started following you",
+					ActionUserId = userId,
+					NotificationType = "Follow"
+				};
+
+				// Save notification to database
+				await _unitOfWork.Repository<Notification>().AddAsync(notification);
+				await _unitOfWork.CompleteAsync();
+
+				// Send real-time notification
+				await _hubContext.Clients.User(userToFollow.Id).SendAsync("ReceiveNotification", new
+				{
+					id = notification.Id,
+					message = notification.Message,
+					profilePic = follower.ProfilePic,
+					fullName = follower.FullName,
+					createdAt = notification.CreatedAt
+				});
 
 				return OperationResult.Success("User followed successfully.");
 			}
