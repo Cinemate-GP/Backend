@@ -1,7 +1,6 @@
 ﻿using Cinemate.Repository.Abstractions;
 using Microsoft.AspNetCore.Http;
 
-
 namespace Cinemate.Repository.Errors.Authentication
 {
 	public static class AuthenticationError
@@ -25,6 +24,7 @@ namespace Cinemate.Repository.Errors.Authentication
 			public static readonly Error FollowingHidden = new("User.FollowingHidden", "Following list has been hidden by this user", StatusCodes.Status200OK);
 			public static readonly Error Unauthorized = new("User.Unauthorized", "Unauthorized access", StatusCodes.Status401Unauthorized);
 			public static readonly Error FollowNotFound = new("User.FollowNotFound", "The follow relationship does not exist", StatusCodes.Status404NotFound);
+			public static readonly Error NotificationGetFailed = new("Notification.GetFailed", "Failed to retrieve notifications: ", StatusCodes.Status500InternalServerError);
 		}
 	}
 }

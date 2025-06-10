@@ -2,6 +2,7 @@
 using Cinemate.Core.Contracts.Common;
 using Cinemate.Core.Contracts.Movies;
 using Cinemate.Core.Entities;
+using Cinemate.Core.Entities.Auth;
 using Cinemate.Core.Errors.Movie;
 using Cinemate.Core.Repository_Contract;
 using Cinemate.Core.Service_Contract;
@@ -10,6 +11,8 @@ using Cinemate.Repository.Data.Contexts;
 using HtmlAgilityPack;
 using Mapster;
 using MapsterMapper;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using System.Net.Http.Json;
@@ -22,7 +25,10 @@ namespace Cinemate.Service.Services.Movies
 		private readonly IUnitOfWork _unitOfWork;
 		private readonly IMapper _mapper;
 		private readonly ApplicationDbContext _context;
+		private readonly INotificationService _notificationService;
+		private readonly UserManager<ApplicationUser> _userManager;
 		private readonly HttpClient _httpClient;
+		private readonly IHttpContextAccessor _httpContextAccessor;
 		private readonly ILogger<MovieService> _logger;
 		private static readonly HashSet<int> _returnedMovieIds = new();
 		private const string TmdbApiKey = "196fb13a1f9bda525f29ed4e3543de8c";
@@ -30,13 +36,21 @@ namespace Cinemate.Service.Services.Movies
 		private const string OmdbApiKey = "226e9b2d";
 		private const string OmdbBaseUrl = "https://www.omdbapi.com";
 
-		public MovieService(IUnitOfWork unitOfWork, IMapper mapper, ApplicationDbContext context, ILogger<MovieService> logger = null)
+		public MovieService(IUnitOfWork unitOfWork,
+			IMapper mapper,
+			ApplicationDbContext context,
+			IHttpContextAccessor httpContextAccessor,
+			UserManager<ApplicationUser> userManager,
+			INotificationService notificationService, ILogger<MovieService> logger = null)
 		{
 			_unitOfWork = unitOfWork;
 			_mapper = mapper;
 			_context = context;
 			_httpClient = new HttpClient();
 			_logger = logger;
+			_httpContextAccessor = httpContextAccessor;
+			_notificationService = notificationService;
+			_userManager = userManager;
 		}
 		public async Task<IEnumerable<MoviesTopTenResponse>> GetMovieTopTenAsync(CancellationToken cancellationToken = default)
 		{
@@ -65,15 +79,18 @@ namespace Cinemate.Service.Services.Movies
 		}
 		public async Task<IEnumerable<MoviesTopTenResponse>> GetMovieTopTenRatedAsync(CancellationToken cancellationToken = default)
 		{
-			var movieRepository = _unitOfWork.Repository<Movie>();
-			var allMovies = await movieRepository.GetAllAsync();
-			var filteredMovies = allMovies
-				.Where(m => !string.IsNullOrEmpty(m.IMDBRating) && m.IsDeleted != true && m.PosterPath != null && m.Trailer != null)
-				.OrderByDescending(m => ParseImdbRating(m.IMDBRating))
+			var mostPopularityMovies = await _context.Movies
+				.Where(m => m.IsDeleted != true && m.PosterPath != null && m.Trailer != null && m.ReleaseDate.Value.Year == DateTime.Now.Year)
+				.OrderByDescending(m => m.Popularity)
+				.ThenByDescending(m => m.ReleaseDate.Value.Year)
 				.Take(10)
+				.ToListAsync(cancellationToken);
+
+			var orderBasedOnRating = mostPopularityMovies
+				.OrderByDescending(m => ParseImdbRating(m.IMDBRating))
 				.ToList();
 
-			return _mapper.Map<IEnumerable<MoviesTopTenResponse>>(filteredMovies);
+			return _mapper.Map<IEnumerable<MoviesTopTenResponse>>(orderBasedOnRating);
 		}
 		public async Task<Result<MovieDetailsResponse>> GetMovieDetailsAsync(string userId, int tmdbid, CancellationToken cancellationToken = default)
 		{
@@ -105,23 +122,21 @@ namespace Cinemate.Service.Services.Movies
 				.FirstOrDefaultAsync(w => w.UserId == userId && w.TMDBId == tmdbid, cancellationToken);
 
             var reviews = await _context.UserReviewMovies
-    .Include(r => r.User)
-    .ThenInclude(x => x.RatedMovies)
-    .Where(r => r.TMDBId == tmdbid)
-    .Select(r => new MovieReviewResponse(
-        r.UserId,                        // string UserId
-        r.User.UserName,                 // string UserName
-        r.TMDBId,                        // int TMDBId
-        r.User.FullName,                 // string FullName
-        r.User.ProfilePic,               // string? ProfilePic
-        r.ReviewId,                      // int ReviewId
-        r.ReviewBody,                    // string ReviewBody
-        r.ReviewedOn,                    // DateTime ReviewedOn
-        r.User.RatedMovies.Any(rm => rm.TMDBId == tmdbid)
-            ? r.User.RatedMovies.First(rm => rm.TMDBId == tmdbid).Stars
-            : (int?)null                  // int? Stars
-    ))
-    .ToListAsync(cancellationToken);
+				.Include(r => r.User)
+				.ThenInclude(x => x.RatedMovies)
+				.Where(r => r.TMDBId == tmdbid)
+				.Select(r => new MovieReviewResponse(
+				    r.UserId,                       
+				    r.User.UserName!,
+				    r.TMDBId,
+					r.User.FullName,
+					r.User.ProfilePic,              
+				    r.ReviewId,                   
+				    r.ReviewBody,                   
+				    r.ReviewedOn,                 
+				    r.User.RatedMovies.Any(rm => rm.TMDBId == tmdbid) ? r.User.RatedMovies.First(rm => rm.TMDBId == tmdbid).Stars : 0
+				))
+				.ToListAsync(cancellationToken);
 
 
             var response = movie.Adapt<MovieDetailsResponse>();
@@ -315,6 +330,66 @@ namespace Cinemate.Service.Services.Movies
 				.ToList();
 
 			return Result.Success<IEnumerable<SearchResponse>>(combinedResults);
+		}		
+		public async Task<Result> UpCommingMovieAsync(CancellationToken cancellationToken = default)
+		{
+			try
+			{
+				var today = DateOnly.FromDateTime(DateTime.Today);	
+				var newlyReleasedMovie = await _context.Movies
+					.Where(m => m.ReleaseDate.HasValue && 
+							   m.ReleaseDate == today &&
+							   !m.IsDeleted &&
+							   m.PosterPath != null)
+					.OrderByDescending(m => m.Popularity)
+					.FirstOrDefaultAsync(cancellationToken);
+
+				var existingNotification = await _unitOfWork.Repository<Notification>()
+					.GetQueryable()
+					.FirstOrDefaultAsync(n => n.ActionUserId == newlyReleasedMovie.TMDBId.ToString() && n.NotificationType == "NewRelease" && n.CreatedAt.Date == DateTime.UtcNow.Date, cancellationToken);
+
+				if (existingNotification != null)
+				{
+					_logger?.LogInformation($"Notification for movie '{newlyReleasedMovie.Title}' already sent today");
+					return Result.Success();
+				}
+				var allUsers = await _userManager.Users
+					.Where(u => !u.IsDisabled)
+					.ToListAsync(cancellationToken);
+
+				var notifications = new List<Notification>();
+				foreach (var user in allUsers)
+				{
+					var notification = new Notification
+					{
+						UserId = user.Id,
+						Message = $"🎬 New movie released today: {newlyReleasedMovie.Title}!",
+						ActionUserId = newlyReleasedMovie.TMDBId.ToString(),
+						NotificationType = "NewRelease",
+						CreatedAt = DateTime.UtcNow
+					};
+					notifications.Add(notification);
+				}
+				if (notifications.Any())
+				{
+					await _unitOfWork.Repository<Notification>().AddRangeAsync(notifications);
+					await _unitOfWork.CompleteAsync();
+					
+					_logger?.LogInformation($"Created {notifications.Count} new release notifications for '{newlyReleasedMovie.Title}'");
+					foreach (var notification in notifications)
+					{
+						var user = allUsers.FirstOrDefault(u => u.Id == notification.UserId);
+						if (user != null)
+							await _notificationService.SendRealTimeNotificationAsync(notification, user, cancellationToken);
+					}
+				}
+				return Result.Success();
+			}
+			catch (Exception ex)
+			{
+				_logger?.LogError(ex, "Error creating new release movie notifications");
+				return Result.Failure(new Error("NewReleaseError", "Failed to create new release movie notifications", 500));
+			}
 		}
 		public async Task<int> UpdateMovieRatingsAsync(CancellationToken cancellationToken = default)
 		{

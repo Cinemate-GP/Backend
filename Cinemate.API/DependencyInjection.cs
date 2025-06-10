@@ -1,11 +1,4 @@
-﻿using Cinemate.Repository.Errors;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Identity;
-using Microsoft.AspNetCore.RateLimiting;
-using System.Reflection;
-using System.Threading.RateLimiting;
-
-namespace Cinemate.API
+﻿namespace Cinemate.API
 {
 	public static class DependencyInjection
 	{		
@@ -17,7 +10,9 @@ namespace Cinemate.API
 				options.AddDefaultPolicy(builder =>
 					builder
 						.WithOrigins(
-							"http://localhost:3000", 
+							"http://localhost:3000",
+							"https://localhost:7098", 
+							"http://localhost:7098", 
 							"https://localhost:3000",
 							"http://cinemate.runasp.net",
 							"https://cinemate.runasp.net",

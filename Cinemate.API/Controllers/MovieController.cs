@@ -1,5 +1,4 @@
 ﻿using Cinemate.Core.Service_Contract;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Cinemate.Repository.Abstractions;
 using Cinemate.Core.Contracts.Movies;
@@ -86,12 +85,18 @@ namespace Cinemate.API.Controllers
 		{
 			var result = await _movieService.FetchAndSaveMovieByTmdbIdAsync(tmdbId, cancellationToken);
 			return Ok(new { MoviesAdded = result });
-		}
+		}		
 		[HttpGet("fetch-by-popularity")]
 		public async Task<IActionResult> FetchByPopularity(CancellationToken cancellationToken)
 		{
 			var result = await _movieService.FetchMovieBasedOnPopularity(cancellationToken);
 			return Ok(new { MoviesAdded = result });
+		}
+		[HttpPost("notify-daily-releases")]
+		public async Task<IActionResult> NotifyDailyReleases(CancellationToken cancellationToken)
+		{
+			var result = await _movieService.UpCommingMovieAsync(cancellationToken);
+			return result.IsSuccess ? Ok(new { Success = true, Message = "Daily release notifications sent successfully" }) : result.ToProblem();
 		}
 	}
 }
