@@ -68,13 +68,13 @@ public class NotificationService : INotificationService
             ActionUserId = n.ActionUserId,
             NotificationType = n.NotificationType,
             // Get action user details if ActionUserId exists
-            ActionUserFullName = n.ActionUserId != null 
+            fullName = n.ActionUserId != null 
                 ? _unitOfWork.Repository<ApplicationUser>().GetQueryable()
                     .Where(u => u.Id == n.ActionUserId)
                     .Select(u => u.FullName)
                     .FirstOrDefault()
                 : null,
-            ActionUserProfilePic = n.ActionUserId != null
+            profilePic = n.ActionUserId != null
                 ? _unitOfWork.Repository<ApplicationUser>().GetQueryable()
                     .Where(u => u.Id == n.ActionUserId)
                     .Select(u => u.ProfilePic)
