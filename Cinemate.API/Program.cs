@@ -1,7 +1,6 @@
 using Cinemate.Core;
-using Cinemate.Core.Entities.Auth;
+using Cinemate.Core.Service_Contract;
 using Cinemate.Repository;
-using Cinemate.Repository.Data;
 using Cinemate.Repository.Data.Contexts;
 using Cinemate.Service;
 using Hangfire;
@@ -54,7 +53,10 @@ namespace Cinemate.API
 				],
 				DashboardTitle = "Cinemate Dashboard",
 			});
-			app.UseHangfireDashboard("/jobs"); app.MapControllers();
+			RecurringJob.AddOrUpdate<IMovieService>("daily-upcoming-movie-check",service => service.UpCommingMovieAsync(CancellationToken.None),"1 0 * * *");
+			RecurringJob.AddOrUpdate<IMovieService>("daily-update-movie-rating",service => service.UpdateMovieRatingsAsync(CancellationToken.None),"1 0 * * *");
+
+			app.MapControllers();
 			app.MapHub<NotificationHub>("/notificationHub").RequireCors("SignalRCors");
 
 			app.Run();

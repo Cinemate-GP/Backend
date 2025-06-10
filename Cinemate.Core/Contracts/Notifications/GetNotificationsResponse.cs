@@ -1,5 +1,5 @@
 namespace Cinemate.Core.Contracts.Notifications
-{
+{    
     public class GetNotificationsResponse
     {
         public int Id { get; set; }
@@ -8,8 +8,6 @@ namespace Cinemate.Core.Contracts.Notifications
         public DateTime CreatedAt { get; set; }
         public string? ActionUserId { get; set; }
         public string NotificationType { get; set; } = string.Empty;
-        
-        // Additional user details for the action user (who triggered the notification)
         public string? fullName { get; set; }
         public string? profilePic { get; set; }
     }
