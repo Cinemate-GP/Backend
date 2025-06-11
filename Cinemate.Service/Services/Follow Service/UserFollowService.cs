@@ -78,7 +78,7 @@ namespace Cinemate.Service.Services.Follow_Service
 				await _unitOfWork.CompleteAsync();
 
 				// Create and send follow notification using the notification service
-				if (!userToFollow.IsEnableNotificationFollowing)
+				if (userToFollow.IsEnableNotificationFollowing)
 					await _notificationService.CreateFollowNotificationAsync(userId, userToFollow.Id, cancellationToken);
 
 				return OperationResult.Success("User followed successfully.");

@@ -37,6 +37,7 @@ namespace Cinemate.API
             }
     
             app.UseHttpsRedirection();
+            app.UseCors();
 			app.UseHangfireDashboard("/jobs", new DashboardOptions
 			{
 				Authorization =
@@ -53,8 +54,8 @@ namespace Cinemate.API
 
 
             app.MapControllers();
-            app.MapHub<NotificationHub>("/notificationHub");
-            app.UseStaticFiles();
+			app.MapHub<NotificationHub>("/notificationHub").RequireCors("SignalRCors");
+			app.UseStaticFiles();
             app.Run();
 
            

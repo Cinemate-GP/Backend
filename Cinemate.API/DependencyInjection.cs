@@ -16,8 +16,10 @@
 							"https://localhost:3000",
 							"http://cinemate.runasp.net",
 							"https://cinemate.runasp.net",
-                            "https://cinemate-eosin.vercel.app/",
-							"https://cinemate-eosin.vercel.app"
+                            "https://cinemate-eosin.vercel.app",
+							"https://cinemate-eosin.vercel.app",
+							"http://cinemategp.netlify.app",
+							"http://cinemategp.netlify.app"
 						)
 						.AllowAnyMethod()
 						.AllowAnyHeader()
@@ -28,11 +30,16 @@
 				options.AddPolicy("SignalRCors", builder =>
 					builder
 						.WithOrigins(
-							"http://localhost:3000", 
+							"http://localhost:3000",
+							"https://localhost:7098",
+							"http://localhost:7098",
 							"https://localhost:3000",
 							"http://cinemate.runasp.net",
 							"https://cinemate.runasp.net",
-							"https://cinemate-eosin.vercel.app"
+							"https://cinemate-eosin.vercel.app",
+							"https://cinemate-eosin.vercel.app",
+							"http://cinemategp.netlify.app",
+							"http://cinemategp.netlify.app"
 						)
 						.AllowAnyMethod()
 						.AllowAnyHeader()
