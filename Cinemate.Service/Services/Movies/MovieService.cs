@@ -250,9 +250,9 @@ namespace Cinemate.Service.Services.Movies
 				.AsQueryable();
 			if (!string.IsNullOrEmpty(request.SearchValue))
 				query = query.Where(m => m.Title.Contains(request.SearchValue));
-			if (!string.IsNullOrEmpty(request.MPA))
-				query = query.Where(m => m.MPA.Contains(request.MPA));
-			if (!string.IsNullOrEmpty(request.Gener))
+            if (!string.IsNullOrEmpty(request.MPA))
+                query = query.Where(m => m.MPA == request.MPA);
+            if (!string.IsNullOrEmpty(request.Gener))
 				query = query.Where(m => m.MovieGenres.Any(mg => mg.Genre.Name == request.Gener));
 			if (!string.IsNullOrEmpty(request.Year))
 				query = query.Where(m => m.ReleaseDate.HasValue && m.ReleaseDate.Value.Year.ToString().Contains(request.Year));
@@ -346,7 +346,7 @@ namespace Cinemate.Service.Services.Movies
 
 				var existingNotification = await _unitOfWork.Repository<Notification>()
 					.GetQueryable()
-					.FirstOrDefaultAsync(n => n.ActionUserId == newlyReleasedMovie.TMDBId.ToString() && n.NotificationType == "NewRelease" && n.CreatedAt.Date == DateTime.UtcNow.Date, cancellationToken);
+					.FirstOrDefaultAsync(n => n.ActionId == newlyReleasedMovie.TMDBId.ToString() && n.NotificationType == "NewRelease" && n.CreatedAt.Date == DateTime.UtcNow.Date, cancellationToken);
 
 				if (existingNotification != null)
 				{
@@ -364,7 +364,7 @@ namespace Cinemate.Service.Services.Movies
 					{
 						UserId = user.Id,
 						Message = $"🎬 New movie released today: {newlyReleasedMovie.Title}!",
-						ActionUserId = newlyReleasedMovie.TMDBId.ToString(),
+						ActionId = newlyReleasedMovie.TMDBId.ToString(),
 						NotificationType = "NewRelease",
 						CreatedAt = DateTime.UtcNow
 					};
