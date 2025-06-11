@@ -14,13 +14,16 @@ namespace Cinemate.Core.Contracts.Profile
         public UpdateProfileRequestValidator()
         {
             RuleFor(x => x.FullName)
-                    
                     .Length(3, 100);
-            RuleFor(x => x.Email)
-           
+
+			RuleFor(x => x.UserName)
+	                .Must(username => username == null || (!username.Contains('.') && !username.Contains('_')))
+	                .WithMessage("Username must not contain (.) or (_)");
+
+			RuleFor(x => x.Email)
                .EmailAddress();
-            RuleFor(x => x.Password)
-               
+
+            RuleFor(x => x.Password)   
                .Matches(RegexPatterns.Password)
                .WithMessage("Password should be at least 6 characters and should contain a lowercase, uppercase, number, and a special character.");
             

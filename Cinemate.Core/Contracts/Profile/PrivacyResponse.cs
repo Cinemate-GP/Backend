@@ -3,6 +3,8 @@
 	public record PrivacyResponse
 	(
 		bool IsEnableRecentActivity,
-		bool IsEnableFollowerAndFollowing
+		bool IsEnableFollowerAndFollowing,
+		bool IsEnableNotificationFollowing,
+		bool IsEnableNotificationNewRelease
 	);
 }

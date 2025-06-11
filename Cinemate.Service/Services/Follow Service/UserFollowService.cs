@@ -38,7 +38,8 @@ namespace Cinemate.Service.Services.Follow_Service
             _userManager = userManager;
             _context = context;
             _notificationService = notificationService;
-        }        public async Task<OperationResult> AddUserFollowAsync(AddFollowRequest request, CancellationToken cancellationToken = default)
+        }        
+		public async Task<OperationResult> AddUserFollowAsync(AddFollowRequest request, CancellationToken cancellationToken = default)
 		{
 			try
 			{
@@ -77,7 +78,8 @@ namespace Cinemate.Service.Services.Follow_Service
 				await _unitOfWork.CompleteAsync();
 
 				// Create and send follow notification using the notification service
-				await _notificationService.CreateFollowNotificationAsync(userId, userToFollow.Id, cancellationToken);
+				if (!userToFollow.IsEnableNotificationFollowing)
+					await _notificationService.CreateFollowNotificationAsync(userId, userToFollow.Id, cancellationToken);
 
 				return OperationResult.Success("User followed successfully.");
 			}

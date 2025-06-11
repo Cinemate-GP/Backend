@@ -607,6 +607,39 @@ namespace Cinemate.Service.Services.Profile
 			await _context.SaveChangesAsync(cancellationToken);
 			return Result.Success();
 		}
+		public async Task<Result> ToggleNotificationFollowing(string userName, CancellationToken cancellationToken = default)
+		{
+			var user = await _userManager.FindByNameAsync(userName);
+			if (user is null)
+				return Result.Failure(UserErrors.UserNameNotFound);
+			user.IsEnableNotificationFollowing = !user.IsEnableNotificationFollowing;
+			await _context.SaveChangesAsync(cancellationToken);
+			return Result.Success();
+		}
+		public async Task<Result> ToggleNotificationNewRelease(string userName, CancellationToken cancellationToken = default)
+		{
+			var user = await _userManager.FindByNameAsync(userName);
+			if (user is null)
+				return Result.Failure(UserErrors.UserNameNotFound);
+			user.IsEnableNotificationNewRelease = !user.IsEnableNotificationNewRelease;
+			await _context.SaveChangesAsync(cancellationToken);
+			return Result.Success();
+		}
+		public async Task<Result<PrivacyResponse>> GetPrivacyAsync(string userName, CancellationToken cancellationToken = default)
+		{
+			var user = await _userManager.FindByNameAsync(userName);
+			if (user is null)
+				return Result.Failure<PrivacyResponse>(UserErrors.UserNameNotFound);
+
+			var privacyResponse = new PrivacyResponse
+			(
+				IsEnableFollowerAndFollowing: user.IsEnableFollowerAndFollowing,
+				IsEnableRecentActivity: user.IsEnableRecentActivity,
+				IsEnableNotificationFollowing:user.IsEnableNotificationFollowing,
+				IsEnableNotificationNewRelease:user.IsEnableNotificationNewRelease
+			);
+			return Result.Success(privacyResponse);
+		}
 		private string GetBaseUrl(string subFolder)
 		{
 			var request = _httpContextAccessor.HttpContext?.Request;

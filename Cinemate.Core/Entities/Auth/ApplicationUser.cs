@@ -13,6 +13,8 @@ namespace Cinemate.Core.Entities.Auth
         public bool IsDisabled { get; set; }
         public bool IsEnableRecentActivity { get; set; }
         public bool IsEnableFollowerAndFollowing { get; set; }
+        public bool IsEnableNotificationFollowing { get; set; }
+        public bool IsEnableNotificationNewRelease { get; set; }
         public List<RefreshToken> RefreshTokens { get; set; } = [];
         public ICollection<UserCastFollow> FollowedCasts { get; set; } = new HashSet<UserCastFollow>();
 

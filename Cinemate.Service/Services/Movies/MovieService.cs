@@ -354,7 +354,7 @@ namespace Cinemate.Service.Services.Movies
 					return Result.Success();
 				}
 				var allUsers = await _userManager.Users
-					.Where(u => !u.IsDisabled)
+					.Where(u => !u.IsDisabled && !u.IsEnableNotificationNewRelease)
 					.ToListAsync(cancellationToken);
 
 				var notifications = new List<Notification>();
