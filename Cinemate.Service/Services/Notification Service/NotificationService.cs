@@ -6,38 +6,59 @@ using Cinemate.Core.Errors.ProfileError;
 using Cinemate.Core.Repository_Contract;
 using Cinemate.Repository.Abstractions;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
+using static Cinemate.Core.Errors.Notification.NotificationError;
 using static Cinemate.Repository.Errors.Authentication.AuthenticationError;
 
 public class NotificationService : INotificationService
 {    
     private readonly IUnitOfWork _unitOfWork;
-    private readonly IHttpContextAccessor _httpContextAccessor;
+	private readonly UserManager<ApplicationUser> _userManager;
+	private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly IHubContext<NotificationHub> _hubContext;
-    public NotificationService(IUnitOfWork unitOfWork, IHttpContextAccessor httpContextAccessor, IHubContext<NotificationHub> hubContext)
+    public NotificationService(IUnitOfWork unitOfWork, UserManager<ApplicationUser> userManager, IHttpContextAccessor httpContextAccessor, IHubContext<NotificationHub> hubContext)
     {
         _unitOfWork = unitOfWork;
         _httpContextAccessor = httpContextAccessor;
         _hubContext = hubContext;
+		_userManager = userManager;
     }
-    public async Task<OperationResult> DeleteNotificationAsync(int notificationId,CancellationToken cancellationToken)
+    public async Task<Result> DeleteNotificationAsync(int notificationId,CancellationToken cancellationToken)
     {
         var userId = _httpContextAccessor.HttpContext?.User?.FindFirstValue(ClaimTypes.NameIdentifier);
         if (string.IsNullOrEmpty(userId))
-            return OperationResult.Failure("Unauthorized user.");
+            return Result.Failure(UserErrors.Unauthorized);
 
         var notificationRepo = _unitOfWork.Repository<Notification>().GetQueryable();
         var notification = await notificationRepo.FirstOrDefaultAsync(n => n.Id == notificationId, cancellationToken);
 
         if (notification == null)
-            return OperationResult.Failure("Notification Not Found");
+			return Result.Failure(NotifyErrors.NotificationNotFound);
 
-        _unitOfWork.Repository<Notification>().Delete(notification);
+		_unitOfWork.Repository<Notification>().Delete(notification);
         await _unitOfWork.CompleteAsync();
-        return OperationResult.Success("Notification Deleted Successfully");
+		return Result.Success();
     }
+	public async Task<Result> DeleteAllNotificationAsync(string userName, CancellationToken cancellationToken)
+	{
+		var user = await _userManager.FindByNameAsync(userName);
+		var notifications = await _unitOfWork.Repository<Notification>()
+			.GetQueryable()
+			.Where(n => n.UserId == user.UserName)
+			.ToListAsync(cancellationToken);
+
+		if (!notifications.Any())
+			return Result.Success();
+
+		foreach (var notification in notifications)
+			_unitOfWork.Repository<Notification>().Delete(notification);
+
+		await _unitOfWork.CompleteAsync();
+		return Result.Success();
+	}
 	public async Task<Result<PaginatedList<GetNotificationsResponse>>> GetUserNotificationsAsync(GetNotificationsRequest request, CancellationToken cancellationToken)
 	{
 		try
@@ -74,7 +95,7 @@ public class NotificationService : INotificationService
 				else if (n.ActionId != null)
 				{
 					var user = _unitOfWork.Repository<ApplicationUser>().GetQueryable()
-						.FirstOrDefault(u => u.Id == n.ActionId);
+						.FirstOrDefault(u => u.UserName == n.ActionId);
 
 					if (user != null)
 					{
@@ -113,25 +134,25 @@ public class NotificationService : INotificationService
 			return Result.Failure<PaginatedList<GetNotificationsResponse>>(UserErrors.NotificationGetFailed);
 		}
 	}
-	public async Task<OperationResult> MarkNotificationAsReadAsync(int notificationId, CancellationToken cancellationToken)
+	public async Task<Result> MarkNotificationAsReadAsync(int notificationId, CancellationToken cancellationToken)
     {
         var userId = _httpContextAccessor.HttpContext?.User?.FindFirstValue(ClaimTypes.NameIdentifier);
         if (string.IsNullOrEmpty(userId))
-            return OperationResult.Failure("Unauthorized user.");
+			return Result.Failure(UserErrors.Unauthorized);
 
-        var notificationRepo = _unitOfWork.Repository<Notification>().GetQueryable();
+		var notificationRepo = _unitOfWork.Repository<Notification>().GetQueryable();
         var notification = await notificationRepo.FirstOrDefaultAsync(n => n.Id == notificationId && n.UserId == userId, cancellationToken);
 
         if (notification == null)
-            return OperationResult.Failure("Notification not found.");
+			return Result.Failure(NotifyErrors.NotificationNotFound);
 
-        if (notification.IsRead)
-            return OperationResult.Success("Notification is already marked as read.");
+		if (notification.IsRead)
+			return Result.Failure(NotifyErrors.NotificationIsExsit);
 
         notification.IsRead = true;
         await _unitOfWork.Repository<Notification>().Update(notification);
         await _unitOfWork.CompleteAsync();        
-        return OperationResult.Success("Notification marked as read successfully.");
+        return Result.Success(notification);
     }
     public async Task<OperationResult> MarkAllNotificationsAsReadAsync(CancellationToken cancellationToken)
     {
@@ -166,7 +187,7 @@ public class NotificationService : INotificationService
 				message = notification.Message,
 				profilePic = notification.NotificationType == "NewRelease" ? movie?.PosterPath : actionUser.ProfilePic,
 				fullName = notification.NotificationType == "NewRelease" ? movie?.Title : actionUser.FullName,
-				actionId = notification.ActionId,
+				actionUserId = notification.User.UserName,
 				notificationType = notification.NotificationType,
 				isRead = notification.IsRead,
 				createdAt = notification.CreatedAt
@@ -185,6 +206,7 @@ public class NotificationService : INotificationService
         {
             var userRepo = _unitOfWork.Repository<ApplicationUser>().GetQueryable();
             var follower = await userRepo.FirstOrDefaultAsync(u => u.Id == followerId, cancellationToken);
+            var user = await userRepo.FirstOrDefaultAsync(u => u.Id == followedUserId, cancellationToken);
             
             if (follower is null)
                 return OperationResult.Failure("Follower user not found.");
@@ -192,8 +214,9 @@ public class NotificationService : INotificationService
             var notification = new Notification
             {
                 UserId = followedUserId,
+                UserName = user.UserName,
                 Message = $"{follower.FullName} started following you",
-                ActionUserId = follower.UserName,
+				ActionId = follower.UserName,
                 NotificationType = "Follow",
                 CreatedAt = DateTime.UtcNow
             };

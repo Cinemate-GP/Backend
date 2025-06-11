@@ -18,6 +18,12 @@ namespace Cinemate.Repository.Data.Configuration.Auth
 
 			builder.Property(x => x.FullName).HasMaxLength(100);
 
+			builder.Property(n => n.IsEnableNotificationFollowing)
+				.HasDefaultValue(true);
+
+			builder.Property(n => n.IsEnableNotificationNewRelease)
+				.HasDefaultValue(true);
+
 			//Default Data
 			builder.HasData(new ApplicationUser
 			{
