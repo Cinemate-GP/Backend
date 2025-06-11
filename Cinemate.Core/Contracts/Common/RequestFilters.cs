@@ -9,7 +9,7 @@ namespace Cinemate.Core.Contracts.Common
 	public record RequestFilters
 	{
 		public int PageNumber { get; init; } = 1;
-		public int PageSize { get; init; } = 10;
+		public int PageSize { get; init; } = 12;
 		public string? SearchValue { get; init; }
 		public string? Gener { get; init; }
 		public string? Year { get; init; }

@@ -111,7 +111,7 @@ namespace Cinemate.Service.Services.User_Review_Movie
                         .Include(ul => ul.Movie)
 						.ThenInclude(m => m.UserRates)
 						.Select(ul => new UserReviewMovieResponseBack
-        {
+						{
                             UserId = ul.UserId,
                             ReviewId = ul.ReviewId,
 							ReviewBody = ul.ReviewBody,

@@ -193,7 +193,7 @@ public class NotificationService : INotificationService
             {
                 UserId = followedUserId,
                 Message = $"{follower.FullName} started following you",
-                ActionUserId = followerId,
+                ActionUserId = follower.UserName,
                 NotificationType = "Follow",
                 CreatedAt = DateTime.UtcNow
             };
