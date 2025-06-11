@@ -25,5 +25,8 @@ namespace Cinemate.Core.Service_Contract
         Task<Result<IEnumerable<FeedResponse>>> GetFeedForUserAsync(string id, CancellationToken cancellationToken = default);
         Task<Result> ToggleFollowerAndFollowing(string userName, CancellationToken cancellationToken = default);
         Task<Result> ToggleRecentActivity(string userName, CancellationToken cancellationToken = default);
+        Task<Result> ToggleNotificationFollowing(string userName, CancellationToken cancellationToken = default);
+        Task<Result> ToggleNotificationNewRelease(string userName, CancellationToken cancellationToken = default);
+		Task<Result<PrivacyResponse>> GetPrivacyAsync(string userName, CancellationToken cancellationToken = default);
 	}
 }
