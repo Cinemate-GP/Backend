@@ -49,8 +49,8 @@ public class NotificationService : INotificationService
 			var query = _unitOfWork.Repository<Notification>().GetQueryable()
 				.Where(n => n.UserId == userId);
 
-			if (request.OnlyUnread == true)
-				query = query.Where(n => !n.IsRead);
+			//if (request.OnlyUnread == true)
+			//	query = query.Where(n => !n.IsRead);
 
 			query = query.OrderByDescending(n => n.CreatedAt);
 			var notifications = await query.ToListAsync(cancellationToken);
@@ -60,7 +60,7 @@ public class NotificationService : INotificationService
 				string? moviePoster = null;
 				string? userName = null;
 				string? userProfilePic = null;
-				if (n.NotificationType == "NewRelease" && n.ActionUserId != null && int.TryParse(n.ActionUserId, out int tmdbId))
+				if (n.NotificationType == "NewRelease" && n.ActionId != null && int.TryParse(n.ActionId, out int tmdbId))
 				{
 					var movie = _unitOfWork.Repository<Movie>().GetQueryable()
 						.FirstOrDefault(m => m.TMDBId == tmdbId);
@@ -71,10 +71,10 @@ public class NotificationService : INotificationService
 						moviePoster = movie.PosterPath;
 					}
 				}
-				else if (n.ActionUserId != null)
+				else if (n.ActionId != null)
 				{
 					var user = _unitOfWork.Repository<ApplicationUser>().GetQueryable()
-						.FirstOrDefault(u => u.Id == n.ActionUserId);
+						.FirstOrDefault(u => u.Id == n.ActionId);
 
 					if (user != null)
 					{
@@ -88,10 +88,10 @@ public class NotificationService : INotificationService
 					Message = n.Message,
 					IsRead = n.IsRead,
 					CreatedAt = n.CreatedAt,
-					ActionUserId = n.ActionUserId,
+					ActionUserId = n.ActionId,
 					NotificationType = n.NotificationType,
 					fullName = n.NotificationType == "NewRelease" ? movieTitle : userName,
-					profilePic = n.NotificationType == "NewRelease" ? moviePoster : userProfilePic
+					Pic = n.NotificationType == "NewRelease" ? moviePoster : userProfilePic
 				};
 			}).ToList();
 			int totalCount = processedNotifications.Count;
@@ -158,7 +158,7 @@ public class NotificationService : INotificationService
 	{
 		try
 		{
-			var movie = notification.NotificationType == "NewRelease" ? await _unitOfWork.Repository<Movie>().GetQueryable().FirstOrDefaultAsync(n => n.TMDBId == int.Parse(notification.ActionUserId!), cancellationToken) : null;
+			var movie = notification.NotificationType == "NewRelease" ? await _unitOfWork.Repository<Movie>().GetQueryable().FirstOrDefaultAsync(n => n.TMDBId == int.Parse(notification.ActionId!), cancellationToken) : null;
 
 			await _hubContext.Clients.User(notification.UserId).SendAsync("ReceiveNotification", new
 			{
@@ -166,7 +166,7 @@ public class NotificationService : INotificationService
 				message = notification.Message,
 				profilePic = notification.NotificationType == "NewRelease" ? movie?.PosterPath : actionUser.ProfilePic,
 				fullName = notification.NotificationType == "NewRelease" ? movie?.Title : actionUser.FullName,
-				actionUserId = notification.ActionUserId,
+				actionId = notification.ActionId,
 				notificationType = notification.NotificationType,
 				isRead = notification.IsRead,
 				createdAt = notification.CreatedAt
@@ -193,7 +193,7 @@ public class NotificationService : INotificationService
             {
                 UserId = followedUserId,
                 Message = $"{follower.FullName} started following you",
-                ActionUserId = followerId,
+                ActionId = follower.UserName,
                 NotificationType = "Follow",
                 CreatedAt = DateTime.UtcNow
             };

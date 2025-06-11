@@ -9,6 +9,7 @@ namespace Cinemate.Core.Contracts.Notifications
         public string? ActionUserId { get; set; }
         public string NotificationType { get; set; } = string.Empty;
         public string? fullName { get; set; }
-        public string? profilePic { get; set; }
+        public string? userName { get; set; }
+        public string? Pic { get; set; }
     }
 }

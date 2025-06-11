@@ -9,6 +9,6 @@ public class Notification
 
     public string UserId { get; set; } = string.Empty;
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-    public string? ActionUserId { get; set; }
+    public string? ActionId { get; set; }
     public string NotificationType { get; set; }
 }

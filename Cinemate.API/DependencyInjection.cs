@@ -16,6 +16,7 @@
 							"https://localhost:3000",
 							"http://cinemate.runasp.net",
 							"https://cinemate.runasp.net",
+                            "https://cinemate-eosin.vercel.app/",
 							"https://cinemate-eosin.vercel.app"
 						)
 						.AllowAnyMethod()
