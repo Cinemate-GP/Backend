@@ -13,8 +13,8 @@ namespace Cinemate.Core.Service_Contract
 {
     public interface IProfileService
     {
-        Task<UpdateProfileReauestBack> UpdateProfileAsync(UpdateProfileRequest request, CancellationToken cancellationToken = default);
-        Task<OperationResult> DeleteAsync(CancellationToken cancellationToken = default);
+        Task<Result<UpdateProfileReauestBack>> UpdateProfileAsync(UpdateProfileRequest request, CancellationToken cancellationToken = default);
+		Task<OperationResult> DeleteAsync(CancellationToken cancellationToken = default);
         Task<IEnumerable<UserWatchedMovieResponseBack>> GetAllMoviesWatched(CancellationToken cancellationToken = default);
         Task<IEnumerable<UserLikeMovieResponseBack>> GetAllMoviesLiked(CancellationToken cancellationToken = default);
         Task< IEnumerable<UserRateMovieResponseBack>> GetAllMoviesRated(CancellationToken cancellationToken = default);
@@ -28,5 +28,6 @@ namespace Cinemate.Core.Service_Contract
         Task<Result> ToggleNotificationFollowing(string userName, CancellationToken cancellationToken = default);
         Task<Result> ToggleNotificationNewRelease(string userName, CancellationToken cancellationToken = default);
 		Task<Result<PrivacyResponse>> GetPrivacyAsync(string userName, CancellationToken cancellationToken = default);
+		Task<Result<NotificationPrivacyResponse>> GetNotificationPrivacy(string userName, CancellationToken cancellationToken = default);
 	}
 }

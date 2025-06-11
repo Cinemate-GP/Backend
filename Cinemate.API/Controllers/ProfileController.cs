@@ -30,9 +30,9 @@ namespace Cinemate.API.Controllers
         [HttpPut("UpdateAccount")]
         public async Task<IActionResult> UpdateAccount([FromForm] UpdateProfileRequest request, CancellationToken cancellationToken)
         {
-            var updatedRequest = await _profileService.UpdateProfileAsync(request, cancellationToken);
-            return Ok(updatedRequest);
-        }
+            var result = await _profileService.UpdateProfileAsync(request, cancellationToken);
+			return result.IsSuccess ? Ok(result.Value) : result.ToProblem();
+		}
         [HttpGet("LikedMovies")]
         public async Task<IActionResult> GetAllLikedMovies(CancellationToken cancellationToken)
         {
@@ -111,5 +111,11 @@ namespace Cinemate.API.Controllers
             var result = await _profileService.GetPrivacyAsync(User.GetUserName()!, cancellationToken);
             return result.IsSuccess ? Ok(result.Value) : result.ToProblem();
         }
-    }
+		[HttpGet("notify-privacy")]
+		public async Task<IActionResult> GetNotificationPrivacy(CancellationToken cancellationToken)
+		{
+			var result = await _profileService.GetNotificationPrivacy(User.GetUserName()!, cancellationToken);
+			return result.IsSuccess ? Ok(result.Value) : result.ToProblem();
+		}
+	}
 }
