@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Cinemate.Repository.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20250609030801_Edit Notification")]
-    partial class EditNotification
+    [Migration("20250611212730_AddPrivactForNotification")]
+    partial class AddPrivactForNotification
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -118,6 +118,16 @@ namespace Cinemate.Repository.Migrations
                     b.Property<bool>("IsEnableFollowerAndFollowing")
                         .HasColumnType("bit");
 
+                    b.Property<bool>("IsEnableNotificationFollowing")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
+
+                    b.Property<bool>("IsEnableNotificationNewRelease")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
+
                     b.Property<bool>("IsEnableRecentActivity")
                         .HasColumnType("bit");
 
@@ -186,6 +196,8 @@ namespace Cinemate.Repository.Migrations
                             Gender = "Male",
                             IsDisabled = false,
                             IsEnableFollowerAndFollowing = false,
+                            IsEnableNotificationFollowing = false,
+                            IsEnableNotificationNewRelease = false,
                             IsEnableRecentActivity = false,
                             LockoutEnabled = false,
                             NormalizedEmail = "ADMIN@CINEMATE-SYSTEM.COM",
@@ -611,7 +623,7 @@ namespace Cinemate.Repository.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<string>("ActionUserId")
+                    b.Property<string>("ActionId")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<DateTime>("CreatedAt")
@@ -635,6 +647,10 @@ namespace Cinemate.Repository.Migrations
                     b.Property<string>("UserId")
                         .IsRequired()
                         .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("UserName")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
 

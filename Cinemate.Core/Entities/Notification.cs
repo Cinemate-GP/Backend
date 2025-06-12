@@ -8,6 +8,7 @@ public class Notification
     public ApplicationUser User { get; set; } = null!;
 
     public string UserId { get; set; } = string.Empty;
+    public string UserName { get; set; } = string.Empty;
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public string? ActionId { get; set; }
     public string NotificationType { get; set; }

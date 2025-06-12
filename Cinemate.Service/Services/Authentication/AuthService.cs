@@ -71,7 +71,7 @@ namespace Cinemate.Service.Services.Authentication
 
 				await _userManager.UpdateAsync(user);
 
-				var response = new AuthResponse(user.Id, user.Email, user.UserName!, token, expiresIn, refreshToken,user.ProfilePic, refreshTokenExpiration);
+				var response = new AuthResponse(user.Id, user.Email, user.FullName, user.Bio, user.UserName!, token, expiresIn, refreshToken,user.ProfilePic, refreshTokenExpiration);
 
 				return Result.Success(response);
 			}
@@ -114,7 +114,7 @@ namespace Cinemate.Service.Services.Authentication
 
 			await _userManager.UpdateAsync(user);
 
-			var response = new AuthResponse(user.Id, user.Email, user.UserName!, newToken, expiresIn, newRefreshToken,user.ProfilePic, refreshTokenExpiration);
+			var response = new AuthResponse(user.Id, user.Email, user.FullName, user.Bio, user.UserName!, newToken, expiresIn, newRefreshToken,user.ProfilePic, refreshTokenExpiration);
 
 			return Result.Success(response);
 		}
@@ -142,7 +142,12 @@ namespace Cinemate.Service.Services.Authentication
             var emailIsExist = await _userManager.Users.AnyAsync(x => x.Email == request.Email, cancellationToken);
             if (emailIsExist)
                 return Result.Failure(UserErrors.DublicatedEmail);
-            var user = request.Adapt<ApplicationUser>();
+
+			var userNameIsExist = await _userManager.Users.AnyAsync(x => x.UserName == request.UserName, cancellationToken);
+			if (userNameIsExist)
+				return Result.Failure(UserErrors.DublicatedUserName);
+
+			var user = request.Adapt<ApplicationUser>();
 			var result = await _userManager.CreateAsync(user, request.Password);
             if (result.Succeeded)
             {

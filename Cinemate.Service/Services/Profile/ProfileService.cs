@@ -19,6 +19,7 @@ using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 using static Cinemate.Repository.Errors.Authentication.AuthenticationError;
 using IFileService = Cinemate.Core.Service_Contract.IFileService;
+using Result = Cinemate.Repository.Abstractions.Result;
 
 namespace Cinemate.Service.Services.Profile
 {
@@ -125,31 +126,30 @@ namespace Cinemate.Service.Services.Profile
             return result.Where(r => r.UserId == userId);
         }
 
-        public async Task<UpdateProfileReauestBack> UpdateProfileAsync(UpdateProfileRequest request, CancellationToken cancellationToken = default)
+        public async Task<Result<UpdateProfileReauestBack>> UpdateProfileAsync(UpdateProfileRequest request, CancellationToken cancellationToken = default)
         {
             var userId = _httpContextAccessor.HttpContext?.User?.FindFirstValue(ClaimTypes.NameIdentifier);
             if (string.IsNullOrEmpty(userId))
-                throw new UnauthorizedAccessException("User is not authenticated.");
+				return Result.Failure<UpdateProfileReauestBack>(UserErrors.Unauthorized);
 
-            var user = await _userManager.FindByIdAsync(userId);
+			var user = await _userManager.FindByIdAsync(userId);
             if (user is null)
-                throw new KeyNotFoundException("User not found.");
+				return Result.Failure<UpdateProfileReauestBack>(UserErrors.DublicatedUserName);
 
-            // Update full name
-            if (request.FullName != null)
+			if (request.FullName != null)
                 user.FullName = request.FullName;
 
 			if (!string.IsNullOrWhiteSpace(request.UserName) && request.UserName != user.UserName)
 			{
-				var userNameIsExsit = await _userManager.FindByNameAsync(request.UserName);
-				if(userNameIsExsit != null)
-					throw new InvalidOperationException("Username already exists.");
+				var userNameIsExist = await _userManager.Users.AnyAsync(x => x.UserName == request.UserName, cancellationToken);
+				if (userNameIsExist)
+					return Result.Failure<UpdateProfileReauestBack>(UserErrors.DublicatedUserName);
 
 				var userNameResult = await _userManager.SetUserNameAsync(user, request.UserName);
 				if (!userNameResult.Succeeded)
 				{
-					var errors = string.Join(", ", userNameResult.Errors.Select(e => e.Description));
-					throw new InvalidOperationException($"Username update failed: {errors}");
+					var error = userNameResult.Errors.First();
+					return Result.Failure<UpdateProfileReauestBack>(new Error(error.Code, error.Description, StatusCodes.Status400BadRequest));
 				}
 			}
 			if (!string.IsNullOrWhiteSpace(request.Email) && request.Email != user.Email)
@@ -157,27 +157,23 @@ namespace Cinemate.Service.Services.Profile
                 var emailResult = await _userManager.SetEmailAsync(user, request.Email);
                 if (!emailResult.Succeeded)
                 {
-                    var errors = string.Join(", ", emailResult.Errors.Select(e => e.Description));
-                    throw new InvalidOperationException($"Email update failed: {errors}");
+					var error = emailResult.Errors.First();
+					return Result.Failure<UpdateProfileReauestBack>(new Error(error.Code, error.Description, StatusCodes.Status400BadRequest));
                 }
             }
 			if (!string.IsNullOrWhiteSpace(request.Bio))
 				user.Bio = request.Bio;
 
-			// Update password if provided
 			if (!string.IsNullOrWhiteSpace(request.Password))
             {
                 var token = await _userManager.GeneratePasswordResetTokenAsync(user);
                 var passwordResult = await _userManager.ResetPasswordAsync(user, token, request.Password);
-
                 if (!passwordResult.Succeeded)
                 {
-                    var errors = string.Join(", ", passwordResult.Errors.Select(e => e.Description));
-                    throw new InvalidOperationException($"Password update failed: {errors}");
-                }
+					var error = passwordResult.Errors.First();
+					return Result.Failure<UpdateProfileReauestBack>(new Error(error.Code, error.Description, StatusCodes.Status400BadRequest));
+				}
             }
-
-            // Handle profile image upload if provided
             if (request.Profile_Image != null && request.Profile_Image.Length > 0)
             {
                 // Delete old profile image if it exists
@@ -185,40 +181,29 @@ namespace Cinemate.Service.Services.Profile
                 {
                     var oldFileName = Path.GetFileName(user.ProfilePic);
                     var oldFilePath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "images", "Profile_Image", oldFileName);
-
-                    // Check if the file exists in wwwroot/images/Profile_Image
                     if (System.IO.File.Exists(oldFilePath))
-                    {
                         _fileService.DeleteFile(oldFileName, ImageSubFolder.Profile_Image);
-                    }
-                    else
-                    {
-                        Console.WriteLine($"File not found at: {oldFilePath}");
-                    }
                 }
 
                 string createdImageName = await _fileService.SaveFileAsync(request.Profile_Image, ImageSubFolder.Profile_Image);
                 string baseUrl = GetBaseUrl("Profile_Image");
                 user.ProfilePic = $"{baseUrl}{createdImageName}";
             }
-
             var updateResult = await _userManager.UpdateAsync(user);
             if (!updateResult.Succeeded)
             {
-                var errors = string.Join(", ", updateResult.Errors.Select(e => e.Description));
-                throw new InvalidOperationException($"Profile update failed: {errors}");
-            }
-            var Updated = new UpdateProfileReauestBack
+				var error = updateResult.Errors.First();
+				return Result.Failure<UpdateProfileReauestBack>(new Error(error.Code, error.Description, StatusCodes.Status400BadRequest));
+			}
+			var Updated = new UpdateProfileReauestBack
             {
 				UserName = user.UserName,
 				Email = user.Email,
 				Bio = user.Bio,
 				Profile_Image = user.ProfilePic,
                 FullName = user.FullName,
-
             };
-
-            return Updated;
+			return Result.Success(Updated);
         }
 		public async Task<Result<IEnumerable<FeedResponse>>> GetFeedForUserAsync(string id, CancellationToken cancellationToken = default)
 		{
@@ -634,9 +619,20 @@ namespace Cinemate.Service.Services.Profile
 			var privacyResponse = new PrivacyResponse
 			(
 				IsEnableFollowerAndFollowing: user.IsEnableFollowerAndFollowing,
-				IsEnableRecentActivity: user.IsEnableRecentActivity,
-				IsEnableNotificationFollowing:user.IsEnableNotificationFollowing,
-				IsEnableNotificationNewRelease:user.IsEnableNotificationNewRelease
+				IsEnableRecentActivity: user.IsEnableRecentActivity
+			);
+			return Result.Success(privacyResponse);
+		}
+		public async Task<Result<NotificationPrivacyResponse>> GetNotificationPrivacy(string userName, CancellationToken cancellationToken = default)
+		{
+			var user = await _userManager.FindByNameAsync(userName);
+			if (user is null)
+				return Result.Failure<NotificationPrivacyResponse>(UserErrors.UserNameNotFound);
+
+			var privacyResponse = new NotificationPrivacyResponse
+			(
+				IsEnableNotificationFollowing: user.IsEnableNotificationFollowing,
+				IsEnableNotificationNewRelease: user.IsEnableNotificationNewRelease
 			);
 			return Result.Success(privacyResponse);
 		}
