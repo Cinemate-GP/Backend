@@ -47,7 +47,7 @@ public class NotificationService : INotificationService
 		var user = await _userManager.FindByNameAsync(userName);
 		var notifications = await _unitOfWork.Repository<Notification>()
 			.GetQueryable()
-			.Where(n => n.UserId == user.UserName)
+			.Where(n => n.UserName == user.UserName)
 			.ToListAsync(cancellationToken);
 
 		if (!notifications.Any())
@@ -185,7 +185,7 @@ public class NotificationService : INotificationService
 			{
 				id = notification.Id,
 				message = notification.Message,
-				profilePic = notification.NotificationType == "NewRelease" ? movie?.PosterPath : actionUser.ProfilePic,
+				Pic = notification.NotificationType == "NewRelease" ? movie?.PosterPath : actionUser.ProfilePic,
 				fullName = notification.NotificationType == "NewRelease" ? movie?.Title : actionUser.FullName,
 				actionUserId = notification.User.UserName,
 				notificationType = notification.NotificationType,

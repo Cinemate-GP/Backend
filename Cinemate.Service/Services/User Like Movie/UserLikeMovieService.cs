@@ -1,4 +1,5 @@
 ﻿using Cinemate.Core.Contracts.User_Like;
+using Cinemate.Core.Contracts.User_Watched_Movie;
 using Cinemate.Core.Entities;
 using Cinemate.Core.Entities.Auth;
 using Cinemate.Core.Errors.ProfileError;
@@ -13,21 +14,23 @@ namespace Cinemate.Service.Services.User_Like_Movie
     public class UserLikeMovieService : IUserLikeMovieService
     {
         private readonly IUnitOfWork _unitOfWork;
+        private readonly IUserWatchedMovieService _userWatchedMovieService;
         private readonly IHttpContextAccessor _httpContextAccessor;
 
-        public UserLikeMovieService(IUnitOfWork unitOfWork, IHttpContextAccessor httpContextAccessor)
+        public UserLikeMovieService(IUnitOfWork unitOfWork, IHttpContextAccessor httpContextAccessor, IUserWatchedMovieService userWatchedMovieService)
         {
             _unitOfWork = unitOfWork;
             _httpContextAccessor = httpContextAccessor;
+            _userWatchedMovieService = userWatchedMovieService;
         }
 
-        public async Task<OperationResult> AddUserLikeMovieAsync(UserLikeMovieResponse request, CancellationToken cancellationToken = default)
-        {
-            try
-            {
-                var userId = _httpContextAccessor.HttpContext?.User?.FindFirstValue(ClaimTypes.NameIdentifier);
-                if (string.IsNullOrEmpty(userId))
-                    return OperationResult.Failure("Unauthorized user.");
+		public async Task<OperationResult> AddUserLikeMovieAsync(UserLikeMovieResponse request, CancellationToken cancellationToken = default)
+		{
+			try
+			{
+				var userId = _httpContextAccessor.HttpContext?.User?.FindFirstValue(ClaimTypes.NameIdentifier);
+				if (string.IsNullOrEmpty(userId))
+					return OperationResult.Failure("Unauthorized user.");
 
 				if (!string.IsNullOrEmpty(request.UserId) && request.UserId != userId)
 				{
@@ -46,23 +49,29 @@ namespace Cinemate.Service.Services.User_Like_Movie
 					return OperationResult.Success("Movie already in Liked Movie before.");
 
 				var entity = new UserLikeMovie
-                {
-                    UserId = userId,
-                    TMDBId = request.TMDBId,
-                    LikedOn = DateTime.UtcNow
-                };
+				{
+					UserId = userId,
+					TMDBId = request.TMDBId,
+					LikedOn = DateTime.UtcNow
+				};
 
-                await _unitOfWork.Repository<UserLikeMovie>().AddAsync(entity);
-                await _unitOfWork.CompleteAsync();
+				await _unitOfWork.Repository<UserLikeMovie>().AddAsync(entity);
+				await _unitOfWork.CompleteAsync();
 
-                return OperationResult.Success("User added like successfully.");
-            }
-            catch (Exception ex)
-            {
-                // Log ex if needed
+				var watchedMovieRequest = new UserWatchedMovieResponse
+				{
+					UserId = request.UserId,
+					TMDBId = request.TMDBId
+				};
+				await _userWatchedMovieService.AddUserWatchedMovieAsync(watchedMovieRequest, cancellationToken);
+				return OperationResult.Success("User added like successfully and movie marked as watched.");
+			}
+			catch (Exception ex)
+			{
+				// Log ex if needed
 				return OperationResult.Failure($"Failed to add like: {ex.Message}");
-            }
-        }
+			}
+		}
 		public async Task<OperationResult> DeleteUserLikeMovieAsync(UserLikeMovieResponse request, CancellationToken cancellationToken = default)
         {
             try

@@ -12,6 +12,7 @@ namespace Cinemate.Core.Contracts.Follow
 		string UserId,
 		string FullName,
 		string UserName,
+		string? Bio,
 		string? ProfilePic,
 		bool SameUser,
 		bool IsFollowing,
