@@ -133,6 +133,8 @@ namespace Cinemate.Service.Services.Movies
 					r.User.ProfilePic,
 					r.ReviewId,
 					r.ReviewBody,
+					r.ReviewType,
+					r.ReviewConfidence,
 					r.ReviewedOn,
 					r.User.RatedMovies.Any(rm => rm.TMDBId == tmdbid) ? r.User.RatedMovies.First(rm => rm.TMDBId == tmdbid).Stars : 0
 				))
@@ -285,6 +287,7 @@ namespace Cinemate.Service.Services.Movies
 			var movieResults = await _context.Movies
 				.Where(m => m.Title != null && m.Title.ToLower().Contains(searchTerm) && (m.PosterPath != null || m.Trailer != null) && !m.IsDeleted)
 				.Take(50)
+				.OrderByDescending(m => m.Popularity)
 				.Select(m => new SearchResponse(
 					m.TMDBId.ToString(),
 					m.Title,
@@ -292,6 +295,7 @@ namespace Cinemate.Service.Services.Movies
 					"Movie"
 				))
 				.AsNoTracking()
+				
 				.ToListAsync(cancellationToken);
 
 			var actorResults = await _context.Casts
@@ -397,8 +401,8 @@ namespace Cinemate.Service.Services.Movies
 				var movies = await _context.Movies
 					.Where(m => m.IMDBId > 0 && !m.IsDeleted && m.ReleaseDate.HasValue && m.ReleaseDate <= today)
 					.OrderByDescending(m => m.ReleaseDate)
-					.Skip(1000)
-					.Take(1000)
+					.Skip(17600)
+					.Take(400)
 					.ToListAsync(cancellationToken);
 
 				int updatedMoviesCount = 0;
@@ -922,27 +926,15 @@ namespace Cinemate.Service.Services.Movies
 						var officialTrailer = videos.Results.FirstOrDefault(v =>
 							v.Site.Equals("YouTube", StringComparison.OrdinalIgnoreCase) &&
 							v.Type.Equals("Trailer", StringComparison.OrdinalIgnoreCase) &&
-							v.Official);
-
-						if (officialTrailer == null)
-						{
-							officialTrailer = videos.Results.FirstOrDefault(v =>
+							v.Official) ??
+							videos.Results.FirstOrDefault(v =>
 								v.Site.Equals("YouTube", StringComparison.OrdinalIgnoreCase) &&
-								v.Type.Equals("Trailer", StringComparison.OrdinalIgnoreCase));
-						}
-
-						if (officialTrailer == null)
-						{
-							officialTrailer = videos.Results.FirstOrDefault(v =>
+								v.Type.Equals("Trailer", StringComparison.OrdinalIgnoreCase)) ??
+							videos.Results.FirstOrDefault(v =>
 								v.Site.Equals("YouTube", StringComparison.OrdinalIgnoreCase) &&
-								v.Type.Equals("Teaser", StringComparison.OrdinalIgnoreCase));
-						}
-
-						if (officialTrailer == null)
-						{
-							officialTrailer = videos.Results.FirstOrDefault(v =>
+								v.Type.Equals("Teaser", StringComparison.OrdinalIgnoreCase)) ??
+							videos.Results.FirstOrDefault(v =>
 								v.Site.Equals("YouTube", StringComparison.OrdinalIgnoreCase));
-						}
 
 						if (officialTrailer != null)
 						{
@@ -1049,16 +1041,21 @@ namespace Cinemate.Service.Services.Movies
 						await _context.MovieGenres.AddAsync(movieGenre, cancellationToken);
 					}
 				}
+
 				if (credits != null)
 				{
 					var peopleToAdd = new List<(int Id, string Name, string Role, string Department, string ProfilePath, int? Gender, double? Popularity, bool IsCast, string Character)>();
+					var castMovieCache = new HashSet<(int CastId, int TmdbId)>(); // Cache to track CastMovie keys
 
 					if (credits.Cast != null)
 					{
 						foreach (var castMember in credits.Cast)
 						{
-							peopleToAdd.Add((castMember.Id, castMember.Name, castMember.Character, castMember.KnownForDepartment,
-								castMember.ProfilePath, castMember.Gender, castMember.Popularity, true, castMember.Character));
+							if (!peopleToAdd.Any(p => p.Id == castMember.Id))
+							{
+								peopleToAdd.Add((castMember.Id, castMember.Name, castMember.Character, castMember.KnownForDepartment,
+									castMember.ProfilePath, castMember.Gender, castMember.Popularity, true, castMember.Character));
+							}
 						}
 					}
 
@@ -1082,6 +1079,25 @@ namespace Cinemate.Service.Services.Movies
 
 					foreach (var person in topPeople)
 					{
+						var castMovieKey = (person.Id, movie.TMDBId);
+						if (castMovieCache.Contains(castMovieKey))
+						{
+							_logger?.LogInformation($"Skipping duplicate CastMovie for CastId {person.Id} and TmdbId {movie.TMDBId}");
+							continue;
+						}
+
+						// Check if CastMovie already exists in the database
+						var existingCastMovie = await _context.CastMovie
+							.AsNoTracking()
+							.FirstOrDefaultAsync(cm => cm.CastId == person.Id && cm.TmdbId == movie.TMDBId, cancellationToken);
+
+						if (existingCastMovie != null)
+						{
+							_logger?.LogInformation($"Found existing CastMovie for CastId {person.Id} and TmdbId {movie.TMDBId}. Skipping.");
+							castMovieCache.Add(castMovieKey);
+							continue;
+						}
+
 						var existingCast = await _context.Casts
 							.FirstOrDefaultAsync(c => c.CastId == person.Id, cancellationToken);
 
@@ -1118,9 +1134,12 @@ namespace Cinemate.Service.Services.Movies
 							Cast = existingCast
 						};
 						await _context.CastMovie.AddAsync(castMovie, cancellationToken);
+						castMovieCache.Add(castMovieKey);
 					}
 				}
+
 				await _context.SaveChangesAsync(cancellationToken);
+				_context.ChangeTracker.Clear();
 				_logger?.LogInformation($"Added movie with TMDB ID {tmdbId} to database");
 				return 1;
 			}

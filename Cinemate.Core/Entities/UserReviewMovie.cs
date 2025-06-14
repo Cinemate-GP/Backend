@@ -16,6 +16,8 @@ namespace Cinemate.Core.Entities
         public string UserId { get; set; } = string.Empty;
         public int TMDBId { get; set; }
         public string ReviewBody { get; set; } = string.Empty;
+        public string? ReviewType { get; set; } = string.Empty;
+        public decimal? ReviewConfidence { get; set; }
         public DateTime ReviewedOn { get; set; } = DateTime.UtcNow;
 
         public ApplicationUser User { get; set; } = null!;
