@@ -21,7 +21,8 @@ namespace Cinemate.Core.Contracts.User_Review_Movie
             RuleFor(x => x.ReviewBody)
                 .NotEmpty()
                 .Length(3, 1000)
-                .WithMessage("Review body must be between 3 and 1000 characters long.");
+				.Must(reviewBody => (!reviewBody.Contains("xss") && !reviewBody.Contains('<') && !reviewBody.Contains('>')))
+				.WithMessage("Review body must be between 3 and 1000 characters long.");
         }
     }
 }

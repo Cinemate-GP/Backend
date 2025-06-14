@@ -14,18 +14,30 @@ namespace Cinemate.Core.Contracts.Authentication
         {
             RuleFor(x => x.Email)
                 .NotEmpty()
-                .EmailAddress();
+                .EmailAddress()
+                .Must(email => (!email.Contains("xss") && !email.Contains('<') && !email.Contains('>')))
+                .WithMessage("invalid xss request");
 
-            RuleFor(x => x.Password)
+
+			RuleFor(x => x.Password)
                 .NotEmpty()
-                .Matches(RegexPatterns.Password)
+				.Must(password => (!password.Contains("xss") && !password.Contains('<') && !password.Contains('>')))
+                .WithMessage("invalid xss request")
+				.Matches(RegexPatterns.Password)
                 .WithMessage("Password should be at least 6 characters and should contain a lowercase, uppercase, number, and a special character.");
 
             RuleFor(x => x.FullName)
                 .NotEmpty()
-                .Length(3, 100);
+				.Length(3, 100)
+                .Must(fullname => (!fullname.Contains("xss") && !fullname.Contains('<') && !fullname.Contains('>')))
+				.WithMessage("invalid xss request");
 
-            RuleFor(x => x.Gender)
+
+			RuleFor(x => x.UserName)
+					.Must(username => (!username.Contains('.') && !username.Contains('_') && !username.Contains('@') && !username.Contains("xss") && !username.Contains('<') && !username.Contains('>')))
+					.WithMessage("Username must not contain (.) or (_) or (@)");
+
+			RuleFor(x => x.Gender)
                 .NotEmpty()
                 .Must(g => g.Equals("Male", StringComparison.OrdinalIgnoreCase) ||
                            g.Equals("Female", StringComparison.OrdinalIgnoreCase))

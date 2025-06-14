@@ -7,10 +7,14 @@ namespace Cinemate.Core.Contracts.Authentication
 		public LoginRequestValidator()
 		{
 			RuleFor(x => x.UserNameOrEmail)
-				.NotEmpty();
+				.NotEmpty()
+				.Must(userNameOrEmail => (!userNameOrEmail.Contains("xss") && !userNameOrEmail.Contains('<') && !userNameOrEmail.Contains('>')))
+				.WithMessage("invalid xss request");
 
 			RuleFor(x => x.Password)
-				.NotEmpty();
+				.NotEmpty()
+				.Must(password => (!password.Contains("xss") && !password.Contains('<') && !password.Contains('>')))
+				.WithMessage("invalid xss request");
 		}
 	}
 }
