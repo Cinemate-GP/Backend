@@ -129,7 +129,6 @@ namespace Cinemate.Repository.Migrations
                         .HasColumnType("bit");
 
                     b.Property<string>("JobTypes")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<DateOnly?>("JoinedOn")
@@ -200,7 +199,6 @@ namespace Cinemate.Repository.Migrations
                             IsEnableNotificationFollowing = false,
                             IsEnableNotificationNewRelease = false,
                             IsEnableRecentActivity = false,
-                            JobTypes = "Other",
                             LockoutEnabled = false,
                             NormalizedEmail = "ADMIN@CINEMATE-SYSTEM.COM",
                             NormalizedUserName = "ADMIN@CINEMATE-SYSTEM.COM",

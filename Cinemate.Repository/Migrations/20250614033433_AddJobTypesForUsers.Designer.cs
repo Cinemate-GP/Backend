@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Cinemate.Repository.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20250614030028_AddJobTypesForUsers")]
+    [Migration("20250614033433_AddJobTypesForUsers")]
     partial class AddJobTypesForUsers
     {
         /// <inheritdoc />
@@ -132,7 +132,6 @@ namespace Cinemate.Repository.Migrations
                         .HasColumnType("bit");
 
                     b.Property<string>("JobTypes")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<DateOnly?>("JoinedOn")
@@ -203,7 +202,6 @@ namespace Cinemate.Repository.Migrations
                             IsEnableNotificationFollowing = false,
                             IsEnableNotificationNewRelease = false,
                             IsEnableRecentActivity = false,
-                            JobTypes = "Other",
                             LockoutEnabled = false,
                             NormalizedEmail = "ADMIN@CINEMATE-SYSTEM.COM",
                             NormalizedUserName = "ADMIN@CINEMATE-SYSTEM.COM",
