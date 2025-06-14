@@ -143,25 +143,31 @@ namespace Cinemate.Service.Services.Authentication
             if (emailIsExist)
                 return Result.Failure(UserErrors.DublicatedEmail);
 
-			var userNameIsExist = await _userManager.Users.AnyAsync(x => x.UserName == request.UserName, cancellationToken);
-			if (userNameIsExist)
-				return Result.Failure(UserErrors.DublicatedUserName);
+			if (request.Email.Contains("@gmail.com") || request.Email.Contains("@yahoo.com") || request.Email.Contains("@fayoum.edu.eg"))
+			{
 
-			var user = request.Adapt<ApplicationUser>();
-			var result = await _userManager.CreateAsync(user, request.Password);
-            if (result.Succeeded)
-            {
-                var code = await _userManager.GenerateEmailConfirmationTokenAsync(user);
-                code = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(code));
-                _logger.LogInformation("Confirmation Code {code}", code);
+				var userNameIsExist = await _userManager.Users.AnyAsync(x => x.UserName == request.UserName, cancellationToken);
+				if (userNameIsExist)
+					return Result.Failure(UserErrors.DublicatedUserName);
 
-                await SendConfirmationEmailAsync(user, code);
+				var user = request.Adapt<ApplicationUser>();
+				var result = await _userManager.CreateAsync(user, request.Password);
+				if (result.Succeeded)
+				{
+					var code = await _userManager.GenerateEmailConfirmationTokenAsync(user);
+					code = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(code));
+					_logger.LogInformation("Confirmation Code {code}", code);
 
-                return Result.Success();
-            }
-            var error = result.Errors.First();
-            return Result.Failure(new Error(error.Code, error.Description, StatusCodes.Status400BadRequest));
-        }
+					await SendConfirmationEmailAsync(user, code);
+
+					return Result.Success();
+				}
+				var error = result.Errors.First();
+				return Result.Failure(new Error(error.Code, error.Description, StatusCodes.Status400BadRequest));
+			}
+			else
+				return Result.Failure(UserErrors.InvalidEmailDomain);
+		}
         public async Task<Result> ConfirmEmailAsync(ConfirmEmailRequest request)
         {
             var user = await _userManager.FindByIdAsync(request.UserId);

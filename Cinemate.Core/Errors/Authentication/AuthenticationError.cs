@@ -26,6 +26,7 @@ namespace Cinemate.Repository.Errors.Authentication
 			public static readonly Error Unauthorized = new("User.Unauthorized", "Unauthorized access", StatusCodes.Status401Unauthorized);
 			public static readonly Error FollowNotFound = new("User.FollowNotFound", "The follow relationship does not exist", StatusCodes.Status404NotFound);
 			public static readonly Error NotificationGetFailed = new("Notification.GetFailed", "Failed to retrieve notifications: ", StatusCodes.Status500InternalServerError);
+			public static readonly Error InvalidEmailDomain = new("User.InvalidEmailDomain", "Invalid Email Domain", StatusCodes.Status500InternalServerError);
 		}
 	}
 }

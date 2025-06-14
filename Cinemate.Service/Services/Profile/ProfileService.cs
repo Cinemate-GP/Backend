@@ -154,13 +154,18 @@ namespace Cinemate.Service.Services.Profile
 			}
 			if (!string.IsNullOrWhiteSpace(request.Email) && request.Email != user.Email)
             {
-                var emailResult = await _userManager.SetEmailAsync(user, request.Email);
-                if (!emailResult.Succeeded)
-                {
-					var error = emailResult.Errors.First();
-					return Result.Failure<UpdateProfileReauestBack>(new Error(error.Code, error.Description, StatusCodes.Status400BadRequest));
-                }
-            }
+				if (request.Email.Contains("@gmail.com") || request.Email.Contains("@yahoo.com") || request.Email.Contains("@fayoum.edu.eg"))
+				{
+					var emailResult = await _userManager.SetEmailAsync(user, request.Email);
+					if (!emailResult.Succeeded)
+					{
+						var error = emailResult.Errors.First();
+						return Result.Failure<UpdateProfileReauestBack>(new Error(error.Code, error.Description, StatusCodes.Status400BadRequest));
+					}
+				}
+				else
+					return Result.Failure<UpdateProfileReauestBack>(UserErrors.InvalidEmailDomain);
+			}
 			if (!string.IsNullOrWhiteSpace(request.Bio))
 				user.Bio = request.Bio;
 
