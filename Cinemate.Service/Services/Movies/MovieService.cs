@@ -206,6 +206,41 @@ namespace Cinemate.Service.Services.Movies
 				return Enumerable.Empty<MovieTrendingResponse>();
 			}
 		}
+		public async Task<Result<IEnumerable<MovieRecommendationResponse>>> GetRecommendedMoviesAsync(MovieRecommendationRequest request, CancellationToken cancellationToken)
+		{
+			try
+			{
+				//var userId = _httpContextAccessor.HttpContext?.User?.FindFirstValue(ClaimTypes.NameIdentifier);
+				//if (string.IsNullOrEmpty(userId))
+				//    return OperationResult.Failure("User is not authenticated.");
+
+				var response = await _httpClient.PostAsJsonAsync(
+					"your-ml-service-url/recommend",
+					request,
+					cancellationToken);
+
+				if (!response.IsSuccessStatusCode)
+				{
+					return Result.Failure<IEnumerable<MovieRecommendationResponse>>(
+						new Error("Recommendation.Failed", "Failed to get recommendations", (int)response.StatusCode));
+				}
+
+				var recommendations = await response.Content.ReadFromJsonAsync<IEnumerable<MovieRecommendationResponse>>(cancellationToken: cancellationToken);
+
+				if (recommendations == null)
+				{
+					return Result.Failure<IEnumerable<MovieRecommendationResponse>>(
+						new Error("Recommendation.Empty", "No recommendations received", null));
+				}
+
+				return Result.Success(recommendations);
+			}
+			catch (Exception ex)
+			{
+				return Result.Failure<IEnumerable<MovieRecommendationResponse>>(
+					new Error("Recommendation.Exception", ex.Message, null));
+			}
+		}
 		public async Task<IEnumerable<MoviesTopTenResponse>> GetMovieBasedOnGeneraAsync(MovieGeneraRequest? request, CancellationToken cancellationToken = default)
 		{
 			var today = DateOnly.FromDateTime(DateTime.Today);

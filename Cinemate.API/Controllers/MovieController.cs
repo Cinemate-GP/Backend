@@ -48,6 +48,12 @@ namespace Cinemate.API.Controllers
 			var result = await _movieService.GetTrendingMoviesAsync(cancellationToken);
 			return Ok(result);
 		}
+		[HttpPost("recommender")]
+		public async Task<IActionResult> GetTrendingMovies(MovieRecommendationRequest request,CancellationToken cancellationToken)
+		{
+			var result = await _movieService.GetRecommendedMoviesAsync(request,cancellationToken);
+			return result.IsSuccess ? Ok(result.Value) : result.ToProblem();
+		}
 		[HttpGet("genres")]
 		public async Task<IActionResult> GetGenera([FromQuery] MovieGeneraRequest? request, CancellationToken cancellationToken)
 		{
