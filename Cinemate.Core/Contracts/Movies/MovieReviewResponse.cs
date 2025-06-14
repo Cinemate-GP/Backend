@@ -15,6 +15,8 @@ namespace Cinemate.Core.Contracts.Movies
 		string? ProfilePic,
 		int ReviewId,
 		string ReviewBody,
+		string? ReviewType,
+		decimal? ReviewConfidence,
 		DateTime ReviewedOn,
 		int? Stars
 	);

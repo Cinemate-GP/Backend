@@ -30,7 +30,10 @@ namespace Cinemate.Repository.Data.Configuration
 
             builder.Property(urm => urm.ReviewBody).HasMaxLength(512);
 
-            builder.Property(urm => urm.ReviewedOn)
+            builder.Property(urm => urm.ReviewConfidence)
+                .HasPrecision(8, 2);
+
+			builder.Property(urm => urm.ReviewedOn)
                 .HasDefaultValueSql("GETDATE()");
         }
     }

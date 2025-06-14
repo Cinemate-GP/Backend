@@ -20,7 +20,7 @@ using Microsoft.Extensions.DependencyInjection;
 namespace Cinemate.Service
 {
 	public static class DependencyInjection
-	{
+	{		
 		public static IServiceCollection AddServicesDependencyInjection(this IServiceCollection services, IConfiguration configuration)
 		{
 			services.AddScoped<IAuthService, AuthService>();
@@ -36,6 +36,7 @@ namespace Cinemate.Service
 			services.AddScoped<IUserWatchlistMovieService, UserWatchlistMovieService>();
 			services.AddScoped<IUserfollowService, UserFollowService>();
             services.AddScoped<INotificationService, NotificationService>();
+			services.AddHttpClient<UserReviewMovieService>();
             services.AddBackgroundJobsConfig(configuration);
             return services;
 		}
