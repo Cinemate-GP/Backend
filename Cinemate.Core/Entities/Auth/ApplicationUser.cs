@@ -10,7 +10,7 @@ namespace Cinemate.Core.Entities.Auth
         public string Gender { get; set; } = string.Empty;
         public DateOnly BirthDay { get; set; }
         public DateOnly? JoinedOn { get; set; }
-		public JobTypes JobTypes { get; set; }
+		public JobTypes? JobTypes { get; set; }
 		public bool IsDisabled { get; set; }
         public bool IsEnableRecentActivity { get; set; }
         public bool IsEnableFollowerAndFollowing { get; set; }

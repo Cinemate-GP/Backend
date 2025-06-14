@@ -14,15 +14,14 @@ namespace Cinemate.Repository.Migrations
                 name: "JobTypes",
                 table: "AspNetUsers",
                 type: "nvarchar(max)",
-                nullable: false,
-                defaultValue: "");
+                nullable: true);
 
             migrationBuilder.UpdateData(
                 table: "AspNetUsers",
                 keyColumn: "Id",
                 keyValue: "0a20e01f-e5ea-4ce0-afbc-ac24742c2732",
                 column: "JobTypes",
-                value: "Other");
+                value: null);
         }
 
         /// <inheritdoc />
