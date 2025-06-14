@@ -1,4 +1,5 @@
 ﻿using Cinemate.Core.Abstractions.Consts;
+using Cinemate.Core.Entities;
 using Cinemate.Core.Entities.Auth;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -23,6 +24,12 @@ namespace Cinemate.Repository.Data.Configuration.Auth
 
 			builder.Property(n => n.IsEnableNotificationNewRelease)
 				.HasDefaultValue(true);
+
+			builder.Property(x => x.JobTypes)
+				.HasConversion(
+					T => T.ToString(),
+					t => (JobTypes)System.Enum.Parse(typeof(JobTypes), t)
+				);
 
 			//Default Data
 			builder.HasData(new ApplicationUser
