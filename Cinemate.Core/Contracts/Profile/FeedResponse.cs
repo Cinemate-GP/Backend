@@ -7,15 +7,16 @@ using System.Threading.Tasks;
 namespace Cinemate.Core.Contracts.Profile
 {
 	public record FeedResponse
-	(
-		string UserId,
-		string FullName,
-		string? ProfilePic,
-		string type,
-		string id,
-		string? PosterPath,
-		string? Name,
-		string? Description,
-		DateTime? CreatedOn
-	);
+(
+	string UserId,
+	string FullName,
+	string? ProfilePic,
+	string Type,
+	string Id,
+	string? PosterPath,
+	string? BackdropPath,
+	string? Name,
+	string? Description,
+	DateTime? CreatedOn
+);
 }

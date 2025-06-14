@@ -247,6 +247,7 @@ namespace Cinemate.Service.Services.Profile
 					UserProfilePic = l.User.ProfilePic,
 					l.TMDBId,
 					MoviePosterPath = l.Movie.PosterPath,
+					MovieBackdropPath = l.Movie.BackdropPath,
 					MovieTitle = l.Movie.Title,
 					l.LikedOn
 				})
@@ -270,6 +271,7 @@ namespace Cinemate.Service.Services.Profile
 					"like",
 					l.TMDBId.ToString(),
 					l.MoviePosterPath,
+					l.MovieBackdropPath, 
 					l.MovieTitle,
 					$"liked {l.MovieTitle}",
 					l.LikedOn
@@ -310,6 +312,7 @@ namespace Cinemate.Service.Services.Profile
 					"follow",
 					f.FollowedUserName!,
 					f.FollowedUserProfilePic,
+					null,
 					f.FollowedUserFullName,
 					$"followed {f.FollowedUserFullName}",
 					f.FollowedOn
@@ -326,6 +329,7 @@ namespace Cinemate.Service.Services.Profile
 					UserProfilePic = r.User.ProfilePic,
 					r.TMDBId,
 					MoviePosterPath = r.Movie.PosterPath,
+					MovieBackdropPath = r.Movie.BackdropPath, 
 					MovieTitle = r.Movie.Title,
 					r.ReviewBody,
 					r.ReviewedOn
@@ -350,6 +354,7 @@ namespace Cinemate.Service.Services.Profile
 					"review",
 					r.TMDBId.ToString(),
 					r.MoviePosterPath,
+					r.MovieBackdropPath,
 					r.MovieTitle,
 					r.ReviewBody,
 					r.ReviewedOn
@@ -366,6 +371,7 @@ namespace Cinemate.Service.Services.Profile
 					UserProfilePic = r.User.ProfilePic,
 					r.TMDBId,
 					MoviePosterPath = r.Movie.PosterPath,
+					MovieBackdropPath = r.Movie.BackdropPath,
 					MovieTitle = r.Movie.Title,
 					r.Stars,
 					r.RatedOn
@@ -390,11 +396,11 @@ namespace Cinemate.Service.Services.Profile
 					"rate",
 					r.TMDBId.ToString(),
 					r.MoviePosterPath,
+					r.MovieBackdropPath,
 					r.MovieTitle,
 					$"rated {r.MovieTitle} with {r.Stars} stars",
 					r.RatedOn
 				)).ToList();
-
 
 			var watchedActivities = await _context.UserWatchedMovies
 				.Where(r => followedUserIds.Contains(r.UserId) && !userIdsWithHiddenActivity.Contains(r.UserId))
@@ -406,6 +412,7 @@ namespace Cinemate.Service.Services.Profile
 					UserProfilePic = r.User.ProfilePic,
 					r.TMDBId,
 					MoviePosterPath = r.Movie.PosterPath,
+					MovieBackdropPath = r.Movie.BackdropPath,
 					MovieTitle = r.Movie.Title,
 					r.WatchedOn
 				})
@@ -426,11 +433,12 @@ namespace Cinemate.Service.Services.Profile
 					r.UserName!,
 					r.UserFullName,
 					r.UserProfilePic,
-					"Watched",
+					"watched", 
 					r.TMDBId.ToString(),
 					r.MoviePosterPath,
+					r.MovieBackdropPath,
 					r.MovieTitle,
-					$"Watched: {r.MovieTitle}",
+					$"watched {r.MovieTitle}",
 					r.WatchedOn
 				)).ToList();
 
@@ -463,6 +471,7 @@ namespace Cinemate.Service.Services.Profile
 				UserId: user.Id,
 				FullName: user.FullName!,
 				UserName: user.UserName!,
+				Bio: user.Bio,
 				ProfilePic: user.ProfilePic,
 				SameUser: (user.Id == userIdToken),
 				IsFollowing: isFollowing,
