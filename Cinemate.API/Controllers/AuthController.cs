@@ -45,7 +45,7 @@ namespace Cinemate.API.Controllers
         public async Task<IActionResult> ConfirmEmail([FromBody] ConfirmEmailRequest request)
         {
             var result = await _authService.ConfirmEmailAsync(request);
-            return result.IsSuccess ? Ok() : result.ToProblem();
+            return result.IsSuccess ? Ok(result.Value) : result.ToProblem();
         }
         [HttpPost("resend-confirm-email")]
         public async Task<IActionResult> ResendConfirmEmail([FromBody] ResendConfirmationEmailRequest request)
