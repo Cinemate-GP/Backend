@@ -13,15 +13,15 @@ namespace Cinemate.Repository.Data.Configuration
     {
         public void Configure(EntityTypeBuilder<UserCastFollow> builder)
         {
-            builder.HasKey(uc => new { uc.UserId, uc.CastId });
-
-            builder.HasOne(uc => uc.Cast)
+            builder.HasKey(uc => new { uc.UserId, uc.CastId });            builder.HasOne(uc => uc.Cast)
                 .WithMany(c => c.FollowedByUsers)
-                .HasForeignKey(uc => uc.CastId);
+                .HasForeignKey(uc => uc.CastId)
+                .OnDelete(DeleteBehavior.Cascade);
 
             builder.HasOne(uc => uc.User)
                 .WithMany(u => u.FollowedCasts)
-                .HasForeignKey(uc => uc.UserId);
+                .HasForeignKey(uc => uc.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
 
             builder.Property(uc => uc.FollowDate)
                 .HasDefaultValueSql("GETDATE()");

@@ -15,7 +15,7 @@ namespace Cinemate.Core.Service_Contract
     public interface IProfileService
     {
         Task<Result<UpdateProfileReauestBack>> UpdateProfileAsync(UpdateProfileRequest request, CancellationToken cancellationToken = default);
-		Task<OperationResult> DeleteAsync(CancellationToken cancellationToken = default);
+		Task<OperationResult> DeleteAsync(string userName, CancellationToken cancellationToken = default);
         Task<IEnumerable<UserWatchedMovieResponseBack>> GetAllMoviesWatched(CancellationToken cancellationToken = default);
         Task<IEnumerable<UserLikeMovieResponseBack>> GetAllMoviesLiked(CancellationToken cancellationToken = default);
         Task< IEnumerable<UserRateMovieResponseBack>> GetAllMoviesRated(CancellationToken cancellationToken = default);
