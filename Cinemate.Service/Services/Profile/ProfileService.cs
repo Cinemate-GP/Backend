@@ -58,28 +58,35 @@ namespace Cinemate.Service.Services.Profile
             _context = context;
 			_unitOfWork = unitOfWork;
 			_httpClient = httpClient;
+		}		public async Task<OperationResult> DeleteAsync(string userName, CancellationToken cancellationToken = default)
+		{
+			var user = await _userManager.FindByNameAsync(userName);
+			if (user is null)
+				return OperationResult.Failure("User not found.");
+
+			// Manually delete UserFollow relationships first to avoid foreign key constraint issues
+			var followsAsFollower = await _context.UserFollows
+				.Where(uf => uf.UserId == user.Id)
+				.ToListAsync(cancellationToken);
+
+			var followsAsFollowed = await _context.UserFollows
+				.Where(uf => uf.FollowId == user.Id)
+				.ToListAsync(cancellationToken);
+
+			_context.UserFollows.RemoveRange(followsAsFollower);
+			_context.UserFollows.RemoveRange(followsAsFollowed);
+			await _context.SaveChangesAsync(cancellationToken);
+
+			// Now delete the user - other relationships with cascade delete will be handled automatically
+			var result = await _userManager.DeleteAsync(user);
+			if (!result.Succeeded)
+				return OperationResult.Failure("Failed to delete user account.");
+
+			await _signInManager.SignOutAsync();
+			return OperationResult.Success("User deleted and signed out.");
 		}
 
-        public async Task<OperationResult> DeleteAsync(CancellationToken cancellationToken = default)
-        {
-            var userId = _httpContextAccessor.HttpContext?.User?.FindFirstValue(ClaimTypes.NameIdentifier);
-            if (string.IsNullOrEmpty(userId))
-                return OperationResult.Failure("User is not authenticated.");
-
-            var user = await _userManager.FindByIdAsync(userId);
-            if (user is null)
-                return OperationResult.Failure("User not found.");
-
-            var result = await _userManager.DeleteAsync(user);
-            if (!result.Succeeded)
-                return OperationResult.Failure("Failed to delete user account.");
-
-            await _signInManager.SignOutAsync();
-
-            return OperationResult.Success("User deleted and signed out.");
-        }
-
-        public async Task<IEnumerable<UserLikeMovieResponseBack>> GetAllMoviesLiked(CancellationToken cancellationToken = default)
+		public async Task<IEnumerable<UserLikeMovieResponseBack>> GetAllMoviesLiked(CancellationToken cancellationToken = default)
         {
             var userId = _httpContextAccessor.HttpContext?.User?.FindFirstValue(ClaimTypes.NameIdentifier);
             if (string.IsNullOrEmpty(userId))

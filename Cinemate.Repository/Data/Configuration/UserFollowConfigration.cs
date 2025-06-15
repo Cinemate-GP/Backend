@@ -13,17 +13,16 @@ namespace Cinemate.Repository.Data.Configuration
     {
         public void Configure(EntityTypeBuilder<UserFollow> builder)
         {
-            builder.HasKey(uf => new { uf.UserId, uf.FollowId });
-
+            builder.HasKey(uf => new { uf.UserId, uf.FollowId });            
             builder.HasOne(uf => uf.Follower)
                    .WithMany(u => u.Following)
                    .HasForeignKey(uf => uf.UserId)
-                   .OnDelete(DeleteBehavior.Restrict); // Prevent cascade delete to avoid circular issues
+                   .OnDelete(DeleteBehavior.Cascade);
 
             builder.HasOne(uf => uf.FollowedUser)
                    .WithMany(u => u.Followers)
                    .HasForeignKey(uf => uf.FollowId)
-                   .OnDelete(DeleteBehavior.Restrict); // Prevent cascade delete to avoid circular issues
+                   .OnDelete(DeleteBehavior.Restrict); 
 
             builder.Property(uf => uf.FollowedOn)
                    .IsRequired().

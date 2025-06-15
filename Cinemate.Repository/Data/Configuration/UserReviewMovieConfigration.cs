@@ -18,15 +18,17 @@ namespace Cinemate.Repository.Data.Configuration
 
             // make identity column for review id
             builder.Property(urm => urm.ReviewId)
-                .ValueGeneratedOnAdd();
-
+                .ValueGeneratedOnAdd();     
+            
             builder.HasOne(urm => urm.User)
                 .WithMany(u => u.ReviewedMovies)
-                .HasForeignKey(urm => urm.UserId);
+                .HasForeignKey(urm => urm.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
 
             builder.HasOne(urm => urm.Movie)
                 .WithMany(m => m.UserReviews)
-                .HasForeignKey(urm => urm.TMDBId);
+                .HasForeignKey(urm => urm.TMDBId)
+                .OnDelete(DeleteBehavior.Cascade);
 
             builder.Property(urm => urm.ReviewBody).HasMaxLength(512);
 

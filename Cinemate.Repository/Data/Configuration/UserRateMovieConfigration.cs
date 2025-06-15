@@ -14,15 +14,16 @@ namespace Cinemate.Repository.Data.Configuration
         public void Configure(EntityTypeBuilder<UserRateMovie> builder)
         {
 
-            builder.HasKey(urm => new { urm.UserId, urm.TMDBId });
-
+            builder.HasKey(urm => new { urm.UserId, urm.TMDBId });            
             builder.HasOne(urm => urm.User)
                 .WithMany(u => u.RatedMovies)
-                .HasForeignKey(urm => urm.UserId);
+                .HasForeignKey(urm => urm.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
 
             builder.HasOne(urm => urm.Movie)
                 .WithMany(m => m.UserRates)
-                .HasForeignKey(urm => urm.TMDBId);
+                .HasForeignKey(urm => urm.TMDBId)
+                .OnDelete(DeleteBehavior.Cascade);
 
             builder.Property(urm => urm.Stars)
                 .HasDefaultValue(null);

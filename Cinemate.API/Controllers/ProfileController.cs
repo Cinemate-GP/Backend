@@ -21,7 +21,7 @@ namespace Cinemate.API.Controllers
         [HttpDelete("DeleteAccount")]
         public async Task<IActionResult> DeleteAccount(CancellationToken cancellationToken)
         {
-            var result = await _profileService.DeleteAsync(cancellationToken);
+            var result = await _profileService.DeleteAsync(User.GetUserName()!, cancellationToken);
             if (!result.IsSuccess)
                 return BadRequest(result.Message);
 

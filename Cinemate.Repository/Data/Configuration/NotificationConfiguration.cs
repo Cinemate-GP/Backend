@@ -23,11 +23,11 @@ namespace Cinemate.Repository.Data.Configuration
                 .HasDefaultValue(false);
 
             builder.Property(n => n.CreatedAt)
-                .HasDefaultValueSql("GETUTCDATE()");
-
+                .HasDefaultValueSql("GETUTCDATE()");            
             builder.HasOne(ulm => ulm.User)
                 .WithMany(u => u.Notifications)
-                .HasForeignKey(ulm => ulm.UserId);
+                .HasForeignKey(ulm => ulm.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
 
             // Add relationships
 
