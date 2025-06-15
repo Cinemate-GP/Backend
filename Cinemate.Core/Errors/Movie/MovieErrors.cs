@@ -15,5 +15,7 @@ namespace Cinemate.Core.Errors.Movie
 		public static readonly Error UserWatchMovie = new("UserWatchMovie.BadRequest", "User Didn't Watch this Movie", StatusCodes.Status400BadRequest);
 		public static readonly Error UserWatchListMovie = new("UserWatchListMovie.NotFound", "User Didn't Add Movie to Watch List", StatusCodes.Status400BadRequest);
 		public static readonly Error RecommandationNotFound = new("Movie.RecommandationNotFound", "There are no Recommendation for you right now", StatusCodes.Status404NotFound);
+		public static readonly Error MLRecommendationNoResults = new ("Movie.MLRecommendationNoResults", "No movie recommendations available", StatusCodes.Status404NotFound);
+		public static readonly Error MLRecommendationError = new ("Movie.MLRecommendation", "Error calling ML recommendation API", StatusCodes.Status500InternalServerError);
 	}
 }
