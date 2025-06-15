@@ -14,12 +14,9 @@ namespace Cinemate.Core.Service_Contract
 		Task<Result<AuthResponse>> GetRefreshTokenAsync(string token, string refreshToken, CancellationToken cancellationToken = default);
 		Task<Result> RevokeRefreshTokenAsync(string token, string refreshToken, CancellationToken cancellationToken = default);
         Task<Result> RegisterAsync(RegisterRequest request, CancellationToken cancellationToken = default);
-        Task<Result> ConfirmEmailAsync(ConfirmEmailRequest request);
-        Task<Result> ResendConfirmEmailAsync(ResendConfirmationEmailRequest request);
-
+		Task<Result<AuthResponse>> ConfirmEmailAsync(ConfirmEmailRequest request);
+		Task<Result> ResendConfirmEmailAsync(ResendConfirmationEmailRequest request);
         Task<Result> SendResetPasswordCodeAsync(string email);
 		Task<Result> ResetPasswordAsync(ResetPasswordRequest request);
-
-
 	}
 }

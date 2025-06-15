@@ -1,4 +1,5 @@
 ﻿using Cinemate.Core.Contracts.Follow;
+using Cinemate.Core.Contracts.Movies;
 using Cinemate.Core.Contracts.Profile;
 using Cinemate.Core.Contracts.User_Like;
 using Cinemate.Core.Contracts.User_Rate_Movie;
@@ -27,7 +28,9 @@ namespace Cinemate.Core.Service_Contract
         Task<Result> ToggleRecentActivity(string userName, CancellationToken cancellationToken = default);
         Task<Result> ToggleNotificationFollowing(string userName, CancellationToken cancellationToken = default);
         Task<Result> ToggleNotificationNewRelease(string userName, CancellationToken cancellationToken = default);
-		Task<Result<PrivacyResponse>> GetPrivacyAsync(string userName, CancellationToken cancellationToken = default);
-		Task<Result<NotificationPrivacyResponse>> GetNotificationPrivacy(string userName, CancellationToken cancellationToken = default);
+        Task<Result<PrivacyResponse>> GetPrivacyAsync(string userName, CancellationToken cancellationToken = default);
+        Task<Result<NotificationPrivacyResponse>> GetNotificationPrivacy(string userName, CancellationToken cancellationToken = default);
+        Task<Result<IEnumerable<MoviesTopTenResponse>>> CalculateUserTestAsync(string userName, CancellationToken cancellationToken = default);
+        Task<Result> TestMLRecommendationFlowAsync(string userName, List<MovieRatingItem> ratings, CancellationToken cancellationToken = default);
 	}
 }

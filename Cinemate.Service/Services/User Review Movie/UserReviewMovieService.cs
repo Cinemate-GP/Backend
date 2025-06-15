@@ -149,7 +149,6 @@ namespace Cinemate.Service.Services.User_Review_Movie
 				else
 				{
 					var errorResponse = await response.Content.ReadAsStringAsync(cancellationToken);
-					Console.WriteLine($"API call failed with status {response.StatusCode}: {errorResponse}");
 					throw new HttpRequestException($"API request failed with status {response.StatusCode}");
 				}
 			}
@@ -157,7 +156,7 @@ namespace Cinemate.Service.Services.User_Review_Movie
 			{
 				Console.WriteLine($"Sentiment analysis failed: {ex.Message}");
 				Console.WriteLine($"Stack trace: {ex.StackTrace}");
-				return null; // Let the caller handle the null case
+				return null;
 			}
 		}
 	}	

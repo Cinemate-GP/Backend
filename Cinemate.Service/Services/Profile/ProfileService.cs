@@ -1,5 +1,6 @@
 ﻿using Cinemate.Core.Abstractions.Consts;
 using Cinemate.Core.Contracts.Follow;
+using Cinemate.Core.Contracts.Movies;
 using Cinemate.Core.Contracts.Profile;
 using Cinemate.Core.Contracts.User_Like;
 using Cinemate.Core.Contracts.User_Rate_Movie;
@@ -7,6 +8,7 @@ using Cinemate.Core.Contracts.User_Recent_Activity;
 using Cinemate.Core.Contracts.User_Review_Movie;
 using Cinemate.Core.Contracts.User_Watched_Movie;
 using Cinemate.Core.Contracts.User_WatchList_Movie;
+using Cinemate.Core.Entities;
 using Cinemate.Core.Entities.Auth;
 using Cinemate.Core.Errors.ProfileError;
 using Cinemate.Core.Repository_Contract;
@@ -17,6 +19,9 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
+using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using static Cinemate.Repository.Errors.Authentication.AuthenticationError;
 using IFileService = Cinemate.Core.Service_Contract.IFileService;
 using Result = Cinemate.Repository.Abstractions.Result;
@@ -29,29 +34,30 @@ namespace Cinemate.Service.Services.Profile
         private readonly SignInManager<ApplicationUser> _signInManager;
         private readonly IFileService _fileService;
         private readonly IHttpContextAccessor _httpContextAccessor;
-        private readonly IUserLikeMovieService userLikeMovieService;
-        private readonly IUserRateMovieService userRateMovieService;
-        private readonly IUserReviewMovieService userReviewMovieService;
-        private readonly IUserWatchedMovieService userWatchedMovieService;
-        private readonly IUserWatchlistMovieService userWatchlistService;
-        private readonly IUserfollowService userfollowService;
+        private readonly IUserLikeMovieService _userLikeMovieService;
+        private readonly IUserRateMovieService _userRateMovieService;
+        private readonly IUserReviewMovieService _userReviewMovieService;
+        private readonly IUserWatchedMovieService _userWatchedMovieService;
+        private readonly IUserWatchlistMovieService _userWatchlistService;
 		private readonly ApplicationDbContext _context;
 		private readonly IUnitOfWork _unitOfWork;
+		private readonly HttpClient _httpClient;
+		private const string MLMovieRecommenderUrl = "http://your-ml-api-url/recommend";
 
-		public ProfileService(UserManager<ApplicationUser> userManager, SignInManager<ApplicationUser> signInManager, IFileService fileService, IHttpContextAccessor httpContextAccessor, IUserLikeMovieService userLikeMovieService, IUserRateMovieService userRateMovieService, IUserReviewMovieService userReviewMovieService, IUserWatchedMovieService userWatchedMovieService, IUserWatchlistMovieService userWatchlistService, IUserfollowService userfollow, ApplicationDbContext context, IUnitOfWork unitOfWork)
+		public ProfileService(UserManager<ApplicationUser> userManager, SignInManager<ApplicationUser> signInManager, IFileService fileService, IHttpContextAccessor httpContextAccessor, IUserLikeMovieService userLikeMovieService, IUserRateMovieService userRateMovieService, IUserReviewMovieService userReviewMovieService, IUserWatchedMovieService userWatchedMovieService, IUserWatchlistMovieService userWatchlistService, ApplicationDbContext context, IUnitOfWork unitOfWork, HttpClient httpClient)
         {
             _userManager = userManager;
             _signInManager = signInManager;
             _fileService = fileService;
             _httpContextAccessor = httpContextAccessor;
-            this.userLikeMovieService = userLikeMovieService;
-            this.userRateMovieService = userRateMovieService;
-            this.userReviewMovieService = userReviewMovieService;
-            this.userWatchedMovieService = userWatchedMovieService;
-            this.userWatchlistService = userWatchlistService;
-            this.userfollowService = userfollow;
+            _userLikeMovieService = userLikeMovieService;
+            _userRateMovieService = userRateMovieService;
+            _userReviewMovieService = userReviewMovieService;
+            _userWatchedMovieService = userWatchedMovieService;
+            _userWatchlistService = userWatchlistService;            
             _context = context;
 			_unitOfWork = unitOfWork;
+			_httpClient = httpClient;
 		}
 
         public async Task<OperationResult> DeleteAsync(CancellationToken cancellationToken = default)
@@ -78,7 +84,7 @@ namespace Cinemate.Service.Services.Profile
             var userId = _httpContextAccessor.HttpContext?.User?.FindFirstValue(ClaimTypes.NameIdentifier);
             if (string.IsNullOrEmpty(userId))
                 return Enumerable.Empty<UserLikeMovieResponseBack>();
-            var result= await userLikeMovieService.GetUserLikeMoviesAsync(cancellationToken);
+            var result= await _userLikeMovieService.GetUserLikeMoviesAsync(cancellationToken);
            
             return result.Where(r => r.UserId == userId);
 
@@ -89,7 +95,7 @@ namespace Cinemate.Service.Services.Profile
             var userId = _httpContextAccessor.HttpContext?.User?.FindFirstValue(ClaimTypes.NameIdentifier);
             if (string.IsNullOrEmpty(userId))
                 return Enumerable.Empty<UserRateMovieResponseBack>();
-            var result = await userRateMovieService.GetUserRateMoviesAsync(cancellationToken);
+            var result = await _userRateMovieService.GetUserRateMoviesAsync(cancellationToken);
 
             return result.Where(r => r.UserId == userId);
         }
@@ -101,7 +107,7 @@ namespace Cinemate.Service.Services.Profile
             if (string.IsNullOrEmpty(userId))
                 return Enumerable.Empty<UserReviewMovieResponseBack>();
 
-            var result = await userReviewMovieService.GetUserReviewMoviesAsync(cancellationToken);
+            var result = await _userReviewMovieService.GetUserReviewMoviesAsync(cancellationToken);
 
             return result.Where(r => r.UserId == userId);
         }
@@ -112,7 +118,7 @@ namespace Cinemate.Service.Services.Profile
             var userId = _httpContextAccessor.HttpContext?.User?.FindFirstValue(ClaimTypes.NameIdentifier);
             if (string.IsNullOrEmpty(userId))
                 return Enumerable.Empty<UserWatchedMovieResponseBack>();
-            var result = await userWatchedMovieService.GetUserWatchedMoviesAsync(cancellationToken);
+            var result = await _userWatchedMovieService.GetUserWatchedMoviesAsync(cancellationToken);
 
             return result.Where(r => r.UserId == userId);
         }
@@ -121,7 +127,7 @@ namespace Cinemate.Service.Services.Profile
             var userId = _httpContextAccessor.HttpContext?.User?.FindFirstValue(ClaimTypes.NameIdentifier);
             if (string.IsNullOrEmpty(userId))
                 return Enumerable.Empty<UserWatchListMovieResponseBack>();
-            var result = await userWatchlistService.GetUserWatchlistMoviesAsync(cancellationToken);
+            var result = await _userWatchlistService.GetUserWatchlistMoviesAsync(cancellationToken);
 
             return result.Where(r => r.UserId == userId);
         }
@@ -650,6 +656,92 @@ namespace Cinemate.Service.Services.Profile
 			);
 			return Result.Success(privacyResponse);
 		}
+		public async Task<Result<IEnumerable<MoviesTopTenResponse>>> CalculateUserTestAsync(string userName, CancellationToken cancellationToken = default)
+		{
+			try
+			{
+				var user = await _userManager.FindByNameAsync(userName);
+				if (user == null)
+					return Result.Failure<IEnumerable<MoviesTopTenResponse>>(UserErrors.UserNotFound);
+
+				var age = DateTime.UtcNow.Year - user.BirthDay.Year;
+				if (user.BirthDay > DateOnly.FromDateTime(DateTime.UtcNow.AddYears(-age)))
+					age--;
+
+				var requestBody = new MLRecommendationRequest
+				{
+					UserId = user.Id,
+					Age = age,
+					JobType = (int)(user.JobTypes ?? JobTypes.Other)
+				};
+				var jsonContent = JsonSerializer.Serialize(requestBody);
+				var content = new StringContent(jsonContent, Encoding.UTF8, "application/json");
+				var response = await _httpClient.PostAsync(MLMovieRecommenderUrl, content, cancellationToken);
+				var responseJson = await response.Content.ReadAsStringAsync(cancellationToken);
+
+				if (response.IsSuccessStatusCode)
+				{
+					var mlResult = JsonSerializer.Deserialize<MLRecommendationResponse>(responseJson, new JsonSerializerOptions
+					{
+						PropertyNameCaseInsensitive = true,
+						AllowTrailingCommas = true,
+						ReadCommentHandling = JsonCommentHandling.Skip
+					}) ?? throw new JsonException($"Deserialization failed. Response: {responseJson}");
+
+					// Fetch movie details from the database for all recommended movie IDs
+					var movieDetails = await _context.Movies
+						.Where(m => mlResult.MovieIds.Contains(m.TMDBId) && !m.IsDeleted)
+						.Select(m => new MoviesTopTenResponse(
+							m.TMDBId,
+							m.Title,
+							m.PosterPath,
+							m.IMDBRating,
+							m.MPA
+						))
+						.ToListAsync(cancellationToken);
+
+					// Preserve the order from the ML recommendations
+					var orderedMovies = mlResult.MovieIds
+						.Select(id => movieDetails.FirstOrDefault(m => m.TMDBId == id))
+						.Where(m => m != null)
+						.ToList();
+
+					return Result.Success<IEnumerable<MoviesTopTenResponse>>(orderedMovies);
+				}
+				else
+					return Result.Failure<IEnumerable<MoviesTopTenResponse>>(
+						new Error("MLRecommendation.Failed",
+								  $"ML API request failed with status {response.StatusCode}",
+								  StatusCodes.Status500InternalServerError));
+			}
+			catch (Exception ex)
+			{
+				return Result.Failure<IEnumerable<MoviesTopTenResponse>>(
+					new Error("MLRecommendation.Error",
+							  $"Error calling ML recommendation API: {ex.Message}",
+							  StatusCodes.Status500InternalServerError));
+			}
+		}
+		public async Task<Result> TestMLRecommendationFlowAsync(string userName, List<MovieRatingItem> ratings, CancellationToken cancellationToken = default)
+		{
+			try
+			{
+				var recommendationsResult = await CalculateUserTestAsync(userName, cancellationToken);
+				if (!recommendationsResult.IsSuccess)
+					return Result.Failure(recommendationsResult.Error);
+
+				var movieIds = recommendationsResult.Value;
+				var saveRatingsResult = await _userRateMovieService.SaveMovieRatingsAsync(ratings, cancellationToken);
+				if (!saveRatingsResult.IsSuccess)
+					return Result.Failure(new Error("Test.SaveRatingsFailed", saveRatingsResult.Message ?? "Failed to save ratings", StatusCodes.Status500InternalServerError));
+
+				return Result.Success();
+			}
+			catch (Exception ex)
+			{
+				return Result.Failure(new Error("Test.Error", $"Test flow failed: {ex.Message}", StatusCodes.Status500InternalServerError));
+			}
+		}
 		private string GetBaseUrl(string subFolder)
 		{
 			var request = _httpContextAccessor.HttpContext?.Request;
@@ -658,5 +750,21 @@ namespace Cinemate.Service.Services.Profile
 
 			return $"{request.Scheme}://{request.Host}/images/{subFolder}/";
 		}
+	}
+	public class MLRecommendationRequest
+	{
+		[JsonPropertyName("userId")]
+		public string UserId { get; set; } = string.Empty;
+
+		[JsonPropertyName("age")]
+		public int Age { get; set; }
+
+		[JsonPropertyName("jobType")]
+		public int JobType { get; set; }
+	}
+	public class MLRecommendationResponse
+	{
+		[JsonPropertyName("movie_ids")]
+		public List<int> MovieIds { get; set; } = new List<int>();
 	}
 }

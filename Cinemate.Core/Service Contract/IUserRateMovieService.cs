@@ -11,10 +11,16 @@ using System.Threading.Tasks;
 namespace Cinemate.Core.Service_Contract
 {
     public interface IUserRateMovieService
-    {
+    {        
         Task<OperationResult> AddUserRateMovieAsync(UserRateMovieResponse userRateMovieResponse, CancellationToken cancellationToken = default);
         Task<OperationResult> DeleteUserRateMovieAsync(UserRateMovieResponse response, CancellationToken cancellationToken = default);
         Task<IEnumerable<UserRateMovieResponseBack>> GetUserRateMoviesAsync(CancellationToken cancellationToken = default);
         Task<Result<IEnumerable<UserRateMovieResponseBack>>> GetMoviesRatedByUserAsync(string userId, CancellationToken cancellationToken = default);
+        Task<OperationResult> SaveMovieRatingsAsync(List<MovieRatingItem> movieRatings, CancellationToken cancellationToken = default);
 	}
+    public class MovieRatingItem
+    {
+        public int TMDBId { get; set; }
+        public int Stars { get; set; }
+    }
 }

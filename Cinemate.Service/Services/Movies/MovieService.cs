@@ -16,7 +16,10 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using System.Net.Http.Json;
+using System.Text;
+using System.Text.Json;
 using System.Text.Json.Serialization;
+using static Cinemate.Repository.Errors.Authentication.AuthenticationError;
 
 namespace Cinemate.Service.Services.Movies
 {
@@ -30,11 +33,12 @@ namespace Cinemate.Service.Services.Movies
 		private readonly HttpClient _httpClient;
 		private readonly IHttpContextAccessor _httpContextAccessor;
 		private readonly ILogger<MovieService> _logger;
-		private static readonly HashSet<int> _returnedMovieIds = new();
-		private const string TmdbApiKey = "196fb13a1f9bda525f29ed4e3543de8c";
+		private static readonly HashSet<int> _returnedMovieIds = new();				private const string TmdbApiKey = "196fb13a1f9bda525f29ed4e3543de8c";
 		private const string TmdbBaseUrl = "https://api.themoviedb.org/3";
 		private const string OmdbApiKey = "226e9b2d";
 		private const string OmdbBaseUrl = "https://www.omdbapi.com";
+		private const string MovieRecommenderUrl = "http://your-recommender-api-url/recommend";
+		private const string MovieSimilarityUrl = "http://your-similarity-api-url/similarity";
 
 		public MovieService(IUnitOfWork unitOfWork,
 			IMapper mapper,
@@ -205,40 +209,59 @@ namespace Cinemate.Service.Services.Movies
 			{
 				return Enumerable.Empty<MovieTrendingResponse>();
 			}
-		}
-		public async Task<Result<IEnumerable<MovieRecommendationResponse>>> GetRecommendedMoviesAsync(MovieRecommendationRequest request, CancellationToken cancellationToken)
+		}		
+		public async Task<Result<IEnumerable<MovieRecommendationResponse>>> GetRecommendedMoviesAsync(string userName, CancellationToken cancellationToken)
 		{
 			try
 			{
-				//var userId = _httpContextAccessor.HttpContext?.User?.FindFirstValue(ClaimTypes.NameIdentifier);
-				//if (string.IsNullOrEmpty(userId))
-				//    return OperationResult.Failure("User is not authenticated.");
+				var user = await _userManager.FindByNameAsync(userName);
+				if (user is null)
+					return Result.Failure<IEnumerable<MovieRecommendationResponse>>(UserErrors.Unauthorized);
 
-				var response = await _httpClient.PostAsJsonAsync(
-					"your-ml-service-url/recommend",
-					request,
-					cancellationToken);
+				var request = new MovieRecommendationRequest
+				(
+					user.Id,
+					DateTime.UtcNow.Year - user.BirthDay.Year
+				);
 
-				if (!response.IsSuccessStatusCode)
-				{
-					return Result.Failure<IEnumerable<MovieRecommendationResponse>>(
-						new Error("Recommendation.Failed", "Failed to get recommendations", (int)response.StatusCode));
-				}
+				var recommendationResult = await GetMovieRecommendationsAsync(request, cancellationToken);
 
-				var recommendations = await response.Content.ReadFromJsonAsync<IEnumerable<MovieRecommendationResponse>>(cancellationToken: cancellationToken);
+				if (recommendationResult == null)
+					return Result.Failure<IEnumerable<MovieRecommendationResponse>>(MovieErrors.RecommandationNotFound);
 
-				if (recommendations == null)
-				{
-					return Result.Failure<IEnumerable<MovieRecommendationResponse>>(
-						new Error("Recommendation.Empty", "No recommendations received", null));
-				}
-
-				return Result.Success(recommendations);
+				return Result.Success(recommendationResult);
 			}
 			catch (Exception ex)
+			{				
+				return Result.Failure<IEnumerable<MovieRecommendationResponse>>(MovieErrors.RecommandationNotFound);
+			}
+		}
+		public async Task<Result<IEnumerable<MoviesTopTenResponse>>> GetMovieSimilarityAsync(int tmdbId, CancellationToken cancellationToken)
+		{
+			try
 			{
-				return Result.Failure<IEnumerable<MovieRecommendationResponse>>(
-					new Error("Recommendation.Exception", ex.Message, null));
+				var similarityResult = await GetMovieSimilarityFromApiAsync(tmdbId, cancellationToken);
+
+				if (similarityResult == null || !similarityResult.Any())
+					return Result.Failure<IEnumerable<MoviesTopTenResponse>>(MovieErrors.MovieNotFound);
+				var tmdbIds = similarityResult.Select(s => s.TMDBId).ToList();
+				var movies = await _context.Movies
+					.Where(m => tmdbIds.Any(id => id == m.TMDBId) && !m.IsDeleted && m.PosterPath != null)
+					.ToListAsync(cancellationToken);
+
+				var result = movies.Select(m => new MoviesTopTenResponse(
+					m.TMDBId,
+					m.Title,
+					m.PosterPath,
+					m.IMDBRating,
+					m.MPA
+				)).ToList();
+
+				return Result.Success<IEnumerable<MoviesTopTenResponse>>(result);
+			}			
+			catch (Exception)
+			{
+				return Result.Failure<IEnumerable<MoviesTopTenResponse>>(MovieErrors.MovieNotFound);
 			}
 		}
 		public async Task<IEnumerable<MoviesTopTenResponse>> GetMovieBasedOnGeneraAsync(MovieGeneraRequest? request, CancellationToken cancellationToken = default)
@@ -1525,12 +1548,74 @@ namespace Cinemate.Service.Services.Movies
 			{ "18+", "NC-17" },
 			{ "AO", "NC-17" },
 			{ "X", "NC-17" },
-			{ "Banned", "NC-17" },
+			{ "Banned", "NC-17" },			
 			{ "Unrated", "Unrated" },
 			{ "Not Rated", "Unrated" },
 			{ "N/A", "Unrated" },
 			{ "o.Al.", "Unrated" }
 		};
+		private async Task<IEnumerable<MovieRecommendationResponse>?> GetMovieRecommendationsAsync(MovieRecommendationRequest request, CancellationToken cancellationToken)
+		{
+			try
+			{
+				var requestBody = new MovieRecommendationApiRequest { UserId = request.UserId, Age = request.Age };
+				var jsonContent = JsonSerializer.Serialize(requestBody);
+				var content = new StringContent(jsonContent, Encoding.UTF8, "application/json");
+				var response = await _httpClient.PostAsync(MovieRecommenderUrl, content, cancellationToken);
+				var responseJson = await response.Content.ReadAsStringAsync(cancellationToken);
+				
+				if (response.IsSuccessStatusCode)
+				{
+					var result = JsonSerializer.Deserialize<IEnumerable<MovieRecommendationApiResponse>>(responseJson, new JsonSerializerOptions
+					{
+						PropertyNameCaseInsensitive = true,
+						AllowTrailingCommas = true,
+						ReadCommentHandling = JsonCommentHandling.Skip
+					}) ?? throw new JsonException($"Deserialization failed. Response: {responseJson}");
+				
+					return result.Select(r => new MovieRecommendationResponse(r.TMDBId, r.Score));
+				}
+				else
+				{
+					var errorResponse = await response.Content.ReadAsStringAsync(cancellationToken);
+					throw new HttpRequestException($"API request failed with status {response.StatusCode}");
+				}
+			}
+			catch (Exception ex)
+			{				return null;
+			}
+		}
+		private async Task<IEnumerable<MovieSimilarityApiResponse>?> GetMovieSimilarityFromApiAsync(int tmdbId, CancellationToken cancellationToken)
+		{
+			try
+			{
+				var requestBody = new MovieSimilarityApiRequest { TMDBId = tmdbId };
+				var jsonContent = JsonSerializer.Serialize(requestBody);
+				var content = new StringContent(jsonContent, Encoding.UTF8, "application/json");
+				var response = await _httpClient.PostAsync(MovieSimilarityUrl, content, cancellationToken);
+				var responseJson = await response.Content.ReadAsStringAsync(cancellationToken);
+				
+				if (response.IsSuccessStatusCode)
+				{
+					var result = JsonSerializer.Deserialize<IEnumerable<MovieSimilarityApiResponse>>(responseJson, new JsonSerializerOptions
+					{
+						PropertyNameCaseInsensitive = true,
+						AllowTrailingCommas = true,
+						ReadCommentHandling = JsonCommentHandling.Skip
+					}) ?? throw new JsonException($"Deserialization failed. Response: {responseJson}");
+				
+					return result;
+				}
+				else
+				{
+					var errorResponse = await response.Content.ReadAsStringAsync(cancellationToken);
+					throw new HttpRequestException($"API request failed with status {response.StatusCode}");
+				}
+			}			catch (Exception)
+			{
+				return null;
+			}
+		}
 	}
 	public class TmdbCreditsResponse
 	{
@@ -1747,5 +1832,34 @@ namespace Cinemate.Service.Services.Movies
 
 		[JsonPropertyName("name")]
 		public string Name { get; set; }
+	}
+
+	public class MovieRecommendationApiRequest
+	{
+		[JsonPropertyName("userId")]
+		public string UserId { get; set; } = string.Empty;
+
+		[JsonPropertyName("age")]
+		public int Age { get; set; }
+	}
+	public class MovieRecommendationApiResponse
+	{
+		[JsonPropertyName("tmdbid")]
+		public int TMDBId { get; set; }
+
+		[JsonPropertyName("score")]
+		public double Score { get; set; }
+	}
+
+	public class MovieSimilarityApiRequest
+	{
+		[JsonPropertyName("tmdbid")]
+		public int TMDBId { get; set; }
+	}
+
+	public class MovieSimilarityApiResponse
+	{
+		[JsonPropertyName("tmdbid")]
+		public int TMDBId { get; set; }
 	}
 }

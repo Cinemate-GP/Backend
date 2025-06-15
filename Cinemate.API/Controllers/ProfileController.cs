@@ -117,5 +117,17 @@ namespace Cinemate.API.Controllers
 			var result = await _profileService.GetNotificationPrivacy(User.GetUserName()!, cancellationToken);
 			return result.IsSuccess ? Ok(result.Value) : result.ToProblem();
 		}
+		[HttpGet("start-test")]
+		public async Task<IActionResult> StartTest(CancellationToken cancellationToken)
+		{
+			var result = await _profileService.CalculateUserTestAsync(User.GetUserName()!, cancellationToken);
+			return result.IsSuccess ? Ok(result.Value) : result.ToProblem();
+		}
+		[HttpPost("end-test")]
+		public async Task<IActionResult> EndTest([FromBody] List<MovieRatingItem> ratings, CancellationToken cancellationToken)
+		{
+			var result = await _profileService.TestMLRecommendationFlowAsync(User.GetUserName()!, ratings, cancellationToken);
+			return result.IsSuccess ? Ok(result) : result.ToProblem();
+		}
 	}
 }

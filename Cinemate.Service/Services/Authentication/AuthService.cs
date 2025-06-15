@@ -168,33 +168,58 @@ namespace Cinemate.Service.Services.Authentication
 			else
 				return Result.Failure(UserErrors.InvalidEmailDomain);
 		}
-        public async Task<Result> ConfirmEmailAsync(ConfirmEmailRequest request)
-        {
-            var user = await _userManager.FindByIdAsync(request.UserId);
-            if (user is null)
-                return Result.Failure(UserErrors.InvalidCode);
+		public async Task<Result<AuthResponse>> ConfirmEmailAsync(ConfirmEmailRequest request)
+		{
+			var user = await _userManager.FindByIdAsync(request.UserId);
+			if (user is null)
+				return Result.Failure<AuthResponse>(UserErrors.InvalidCode);
 
-            if (user.EmailConfirmed)
-                return Result.Failure(UserErrors.DuplicatedConfirmation);
+			if (user.EmailConfirmed)
+				return Result.Failure<AuthResponse>(UserErrors.DuplicatedConfirmation);
 
-            var code = request.Code;
-            try
-            {
-                code = Encoding.UTF8.GetString(WebEncoders.Base64UrlDecode(code));
-            }
-            catch (FormatException)
-            {
-                return Result.Failure(UserErrors.InvalidCode);
-            }
-            var result = await _userManager.ConfirmEmailAsync(user, code);
-            if (result.Succeeded)
-            {
-                await _userManager.AddToRoleAsync(user, DefaultRoles.Member);
-                return Result.Success();
-            }
-            var error = result.Errors.First();
-            return Result.Failure(new Error(error.Code, error.Description, StatusCodes.Status400BadRequest));
-        }
+			var code = request.Code;
+			try
+			{
+				code = Encoding.UTF8.GetString(WebEncoders.Base64UrlDecode(code));
+			}
+			catch (FormatException)
+			{
+				return Result.Failure<AuthResponse>(UserErrors.InvalidCode);
+			}
+
+			var result = await _userManager.ConfirmEmailAsync(user, code);
+			if (result.Succeeded)
+			{
+				await _userManager.AddToRoleAsync(user, DefaultRoles.Member);
+				var userRole = await GetUserRole(user, default);
+				var (token, expiresIn) = _jwtProvider.GenerateToken(user, userRole);
+
+				var refreshToken = GenerateRefreshToken();
+				var refreshTokenExpiration = DateTime.UtcNow.AddDays(_refreshTokenExpiryDays);
+
+				user.RefreshTokens.Add(new RefreshToken
+				{
+					Token = refreshToken,
+					ExpiresOn = refreshTokenExpiration
+				});
+				await _userManager.UpdateAsync(user);
+				var response = new AuthResponse(
+					user.Id,
+					user.Email,
+					user.FullName,
+					user.Bio,
+					user.UserName!,
+					token,
+					expiresIn,
+					refreshToken,
+					user.ProfilePic,
+					refreshTokenExpiration
+				);
+				return Result.Success(response);
+			}
+			var error = result.Errors.First();
+			return Result.Failure<AuthResponse>(new Error(error.Code, error.Description, StatusCodes.Status400BadRequest));
+		}
 		public async Task<Result> SendResetPasswordCodeAsync(string email)
 		{
 
@@ -213,7 +238,6 @@ namespace Cinemate.Service.Services.Authentication
 
 			return Result.Success();
 		}
-
 		public async Task<Result> ResetPasswordAsync(ResetPasswordRequest request)
 		{
 			var user = await _userManager.FindByEmailAsync(request.Email);
