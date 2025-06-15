@@ -47,11 +47,18 @@ namespace Cinemate.API.Controllers
 		{
 			var result = await _movieService.GetTrendingMoviesAsync(cancellationToken);
 			return Ok(result);
-		}
+		}		
+		[Authorize]
 		[HttpPost("recommender")]
-		public async Task<IActionResult> GetTrendingMovies(MovieRecommendationRequest request,CancellationToken cancellationToken)
+		public async Task<IActionResult> GetMovieRecommnder(CancellationToken cancellationToken)
 		{
-			var result = await _movieService.GetRecommendedMoviesAsync(request,cancellationToken);
+			var result = await _movieService.GetRecommendedMoviesAsync(User.GetUserName()!,cancellationToken);
+			return result.IsSuccess ? Ok(result.Value) : result.ToProblem();
+		}
+		[HttpGet("similarity/{tmdbId}")]
+		public async Task<IActionResult> GetMovieSimilarity(int tmdbId, CancellationToken cancellationToken)
+		{
+			var result = await _movieService.GetMovieSimilarityAsync(tmdbId, cancellationToken);
 			return result.IsSuccess ? Ok(result.Value) : result.ToProblem();
 		}
 		[HttpGet("genres")]
@@ -79,7 +86,6 @@ namespace Cinemate.API.Controllers
 			var result = await _movieService.FetchAndSaveUpcomingMoviesAsync(cancellationToken);
 			return Ok(new { MoviesAdded = result });
 		}
-
 		[HttpGet("update-ratings")]
 		public async Task<IActionResult> UpdateMovieRatings(CancellationToken cancellationToken)
 		{
