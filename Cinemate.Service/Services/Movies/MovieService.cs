@@ -38,8 +38,8 @@ namespace Cinemate.Service.Services.Movies
 		private const string TmdbBaseUrl = "https://api.themoviedb.org/3";
 		private const string OmdbApiKey = "226e9b2d";
 		private const string OmdbBaseUrl = "https://www.omdbapi.com";
-		private const string MovieRecommenderUrl = "http://127.0.0.1:5000/api/v1/user/recommend";
-		private const string MovieSimilarityUrl = "http://127.0.0.1:5000/movie/similar";
+		private const string MovieRecommenderUrl = "http://cinemate-rs-api.hzgxh0ashwhbgkg5.italynorth.azurecontainer.io:5000/api/v1/user/recommend";
+		private const string MovieSimilarityUrl = "http://cinemate-rs-api.hzgxh0ashwhbgkg5.italynorth.azurecontainer.io:5000/api/v1/movie/similar";
 
 		public MovieService(IUnitOfWork unitOfWork,
 			IMapper mapper,
@@ -144,6 +144,25 @@ namespace Cinemate.Service.Services.Movies
 					r.User.RatedMovies.Any(rm => rm.TMDBId == tmdbid) ? r.User.RatedMovies.First(rm => rm.TMDBId == tmdbid).Stars : 0
 				))
 				.ToListAsync(cancellationToken);
+			int totalReviews = reviews.Count;
+			string movieReviewType = "Mixed";
+			if (totalReviews > 0)
+			{
+				int positiveCount = reviews.Count(r => r.ReviewType == "positive" || r.ReviewType == "very positive");
+				int negativeCount = reviews.Count(r => r.ReviewType == "negative" || r.ReviewType == "very negative");
+
+				double positivePercentage = (double)positiveCount / totalReviews;
+				double negativePercentage = (double)negativeCount / totalReviews;
+
+				if (positivePercentage >= 0.75)
+					movieReviewType = "Very Positive";
+				else if (positivePercentage > 0.5)
+					movieReviewType = "Positive";
+				else if (negativePercentage >= 0.75)
+					movieReviewType = "Very Negative";
+				else if (negativePercentage > 0.5)
+					movieReviewType = "Negative";
+			}
 
 			var response = movie.Adapt<MovieDetailsResponse>();
 			response = response with
@@ -152,7 +171,8 @@ namespace Cinemate.Service.Services.Movies
 				IsLiked = likedMovie != null,
 				IsInWatchList = watcheListMovie != null,
 				IsWatched = watchedMovie != null,
-				MovieReviews = reviews
+				MovieReviews = reviews,
+				MovieReviewType = movieReviewType
 			};
 			return Result.Success(response);
 		}
@@ -237,7 +257,15 @@ namespace Cinemate.Service.Services.Movies
 			if (similarityResult == null || !similarityResult.Any())
 				return Result.Success(Enumerable.Empty<MoviesTopTenResponse>());
 
-			var tmdbIds = similarityResult.SelectMany(s => s.Recommendations).ToList();
+			var tmdbIds = similarityResult
+				.Where(s => s != null && s.Recommendations != null)
+				.SelectMany(s => s.Recommendations)
+				.Where(id => id != 0)
+				.ToList();
+
+			if (!tmdbIds.Any())
+				return Result.Success(Enumerable.Empty<MoviesTopTenResponse>());
+
 			var movies = await _context.Movies
 				.Where(m => tmdbIds.Contains(m.TMDBId) && !m.IsDeleted && m.PosterPath != null)
 				.ToListAsync(cancellationToken);
@@ -447,8 +475,8 @@ namespace Cinemate.Service.Services.Movies
 				var movies = await _context.Movies
 					.Where(m => m.IMDBId > 0 && !m.IsDeleted && m.ReleaseDate.HasValue && m.ReleaseDate <= today)
 					.OrderByDescending(m => m.ReleaseDate)
-					.Skip(17600)
-					.Take(400)
+					//.Skip(600)
+					.Take(600)
 					.ToListAsync(cancellationToken);
 
 				int updatedMoviesCount = 0;
@@ -1906,7 +1934,7 @@ namespace Cinemate.Service.Services.Movies
 
 	public class MovieSimilarityApiRequest
 	{
-		[JsonPropertyName("tmdbid")]
+		[JsonPropertyName("TMDBId")]
 		public int TMDBId { get; set; }
 	}
 	public class MLApiResponse
@@ -1920,14 +1948,28 @@ namespace Cinemate.Service.Services.Movies
 		[JsonPropertyName("status")]
 		public string? Status { get; set; }
 	}
+	public class MovieSimilarityApiResponse
+	{
+		[JsonPropertyName("data")]
+		public MovieSimilarityData? Data { get; set; }
+
+		[JsonPropertyName("message")]
+		public string? Message { get; set; }
+
+		[JsonPropertyName("status")]
+		public string Status { get; set; } = string.Empty;
+
+		public IEnumerable<int> Recommendations => Data?.Recommendations ?? Enumerable.Empty<int>();
+	}
+
+	public class MovieSimilarityData
+	{
+		[JsonPropertyName("recommendations")]
+		public List<int> Recommendations { get; set; } = new List<int>();
+	}
 	public class MLApiResponseData
 	{
 		[JsonPropertyName("recommendations")]
 		public JsonElement[][]? Recommendations { get; set; }
-	}
-	public class MovieSimilarityApiResponse
-	{
-		[JsonPropertyName("recommendations")]
-		public IEnumerable<int> Recommendations { get; set; }
 	}
 }

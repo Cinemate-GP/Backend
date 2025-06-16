@@ -31,6 +31,6 @@ namespace Cinemate.Core.Service_Contract
         Task<Result<PrivacyResponse>> GetPrivacyAsync(string userName, CancellationToken cancellationToken = default);
         Task<Result<NotificationPrivacyResponse>> GetNotificationPrivacy(string userName, CancellationToken cancellationToken = default);
         Task<Result<IEnumerable<MoviesTopTenResponse>>> CalculateUserTestAsync(string userName, CancellationToken cancellationToken = default);
-        Task<Result> TestMLRecommendationFlowAsync(string userName, List<MovieRatingItem> ratings, CancellationToken cancellationToken = default);
+       // Task<Result> TestMLRecommendationFlowAsync(string userName, List<MovieRatingItem> ratings, CancellationToken cancellationToken = default);
 	}
 }

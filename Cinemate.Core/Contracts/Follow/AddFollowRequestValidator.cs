@@ -1,4 +1,5 @@
-﻿using FluentValidation;
+﻿using Cinemate.Core.Contracts.Common;
+using FluentValidation;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -7,16 +8,17 @@ using System.Threading.Tasks;
 
 namespace Cinemate.Core.Contracts.Follow
 {
-    public class AddFollowRequestValidator:AbstractValidator<AddFollowRequest>
+    public class AddFollowRequestValidator : BaseValidator<AddFollowRequest>
     {
         public AddFollowRequestValidator()
         {
-            RuleFor(x => x.UserId)
+            WithXssProtection(RuleFor(x => x.UserId)
                 .NotEmpty()
-                .WithMessage("UserId is required.");
-            RuleFor(x => x.FollowId)
+                .WithMessage("UserId is required."));
+            
+            WithXssProtection(RuleFor(x => x.FollowId)
                 .NotEmpty()
-                .WithMessage("FollowId is required.");
+                .WithMessage("FollowId is required."));
         }
     }
 }
