@@ -1,4 +1,5 @@
-﻿using FluentValidation;
+﻿using Cinemate.Core.Contracts.Common;
+using FluentValidation;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -7,13 +8,13 @@ using System.Threading.Tasks;
 
 namespace Cinemate.Core.Contracts.Authentication
 {
-	public class ForgetPasswrodRequestValidator : AbstractValidator<ForgetPasswrodRequest>
+	public class ForgetPasswrodRequestValidator : BaseValidator<ForgetPasswrodRequest>
 	{
 		public ForgetPasswrodRequestValidator()
 		{
-			RuleFor(x => x.Email)
+			WithXssProtection(RuleFor(x => x.Email)
 				.NotEmpty()
-				.EmailAddress();
+				.EmailAddress());
 		}
 	}
 }

@@ -120,7 +120,8 @@ namespace Cinemate.Service.Services.User_Rate_Movie
             return await _unitOfWork.Repository<UserRateMovie>()
                         .GetQueryable() // Assuming this returns IQueryable<UserLikeMovie>
                         .Include(ul => ul.User)
-                        .Include(ul => ul.Movie)                        .Select(ul => new UserRateMovieResponseBack
+                        .Include(ul => ul.Movie)                        
+						.Select(ul => new UserRateMovieResponseBack
         {
                             UserId = ul.UserId,
                             Stars=ul.Stars,

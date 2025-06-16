@@ -1,5 +1,6 @@
 ﻿using Cinemate.Core.Contracts.Profile;
 using Cinemate.Core.Extensions;
+using Cinemate.Core.Filters;
 using Cinemate.Core.Service_Contract;
 using Cinemate.Repository.Abstractions;
 using Microsoft.AspNetCore.Authorization;
@@ -68,14 +69,15 @@ namespace Cinemate.API.Controllers
 		{
 			var result = await _profileService.GetFeedForUserAsync(User.GetUserId()!, cancellationToken);
 			return result.IsSuccess ? Ok(result.Value) : result.ToProblem();
-		}
-		[HttpGet("details/{userName}")]
+		}		[HttpGet("details/{userName}")]
+		[XssProtection]
 		public async Task<IActionResult> GetFollowCount([FromRoute] string userName, CancellationToken cancellationToken)
 		{
 			var result = await _profileService.GetUserDetailsAsync(userName, cancellationToken);
 			return result.IsSuccess ? Ok(result.Value) : result.ToProblem();
 		}
 		[HttpGet("RecentActivity/{userName}")]
+		[XssProtection]
         public async Task<IActionResult> GetRecentActivity([FromRoute] string userName, CancellationToken cancellationToken)
         {
             var result = await _profileService.GetAllRecentActivity(userName, cancellationToken);
@@ -123,11 +125,11 @@ namespace Cinemate.API.Controllers
 			var result = await _profileService.CalculateUserTestAsync(User.GetUserName()!, cancellationToken);
 			return result.IsSuccess ? Ok(result.Value) : result.ToProblem();
 		}
-		[HttpPost("end-test")]
-		public async Task<IActionResult> EndTest([FromBody] List<MovieRatingItem> ratings, CancellationToken cancellationToken)
-		{
-			var result = await _profileService.TestMLRecommendationFlowAsync(User.GetUserName()!, ratings, cancellationToken);
-			return result.IsSuccess ? Ok(result) : result.ToProblem();
-		}
+		//[HttpPost("end-test")]
+		//public async Task<IActionResult> EndTest([FromBody] List<MovieRatingItem> ratings, CancellationToken cancellationToken)
+		//{
+		//	var result = await _profileService.TestMLRecommendationFlowAsync(User.GetUserName()!, ratings, cancellationToken);
+		//	return result.IsSuccess ? Ok(result) : result.ToProblem();
+		//}
 	}
 }

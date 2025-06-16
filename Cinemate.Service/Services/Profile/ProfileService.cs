@@ -43,7 +43,7 @@ namespace Cinemate.Service.Services.Profile
 		private readonly ApplicationDbContext _context;
 		private readonly IUnitOfWork _unitOfWork;
 		private readonly HttpClient _httpClient;
-		private const string MLMovieRecommenderUrl = "http://127.0.0.1:5000/api/v1/user/test";
+		private const string MLMovieRecommenderUrl = "http://cinemate-rs-api.hzgxh0ashwhbgkg5.italynorth.azurecontainer.io:5000/api/v1/user/test";
 
 		public ProfileService(UserManager<ApplicationUser> userManager, SignInManager<ApplicationUser> signInManager, IFileService fileService, IHttpContextAccessor httpContextAccessor, IUserLikeMovieService userLikeMovieService, IUserRateMovieService userRateMovieService, IUserReviewMovieService userReviewMovieService, IUserWatchedMovieService userWatchedMovieService, IUserWatchlistMovieService userWatchlistService, ApplicationDbContext context, IUnitOfWork unitOfWork, HttpClient httpClient)
         {
@@ -722,26 +722,26 @@ namespace Cinemate.Service.Services.Profile
 				return Result.Failure<IEnumerable<MoviesTopTenResponse>>(MovieErrors.MLRecommendationError);
 			}
 		}
-		public async Task<Result> TestMLRecommendationFlowAsync(string userName, List<MovieRatingItem> ratings, CancellationToken cancellationToken = default)
-		{
-			try
-			{
-				var recommendationsResult = await CalculateUserTestAsync(userName, cancellationToken);
-				if (!recommendationsResult.IsSuccess)
-					return Result.Failure(recommendationsResult.Error);
+		//public async Task<Result> TestMLRecommendationFlowAsync(string userName, List<MovieRatingItem> ratings, CancellationToken cancellationToken = default)
+		//{
+		//	try
+		//	{
+		//		var recommendationsResult = await CalculateUserTestAsync(userName, cancellationToken);
+		//		if (!recommendationsResult.IsSuccess)
+		//			return Result.Failure(recommendationsResult.Error);
 
-				var movieIds = recommendationsResult.Value;
-				var saveRatingsResult = await _userRateMovieService.SaveMovieRatingsAsync(ratings, cancellationToken);
-				if (!saveRatingsResult.IsSuccess)
-					return Result.Failure(UserErrors.TestSaveRatingsFailed);
+		//		var movieIds = recommendationsResult.Value;
+		//		var saveRatingsResult = await _userRateMovieService.SaveMovieRatingsAsync(ratings, cancellationToken);
+		//		if (!saveRatingsResult.IsSuccess)
+		//			return Result.Failure(UserErrors.TestSaveRatingsFailed);
 
-				return Result.Success();
-			}
-			catch (Exception ex)
-			{
-				return Result.Failure(UserErrors.TestSaveRatingsFailed);
-			}
-		}
+		//		return Result.Success();
+		//	}
+		//	catch (Exception ex)
+		//	{
+		//		return Result.Failure(UserErrors.TestSaveRatingsFailed);
+		//	}
+		//}
 		private string GetBaseUrl(string subFolder)
 		{
 			var request = _httpContextAccessor.HttpContext?.Request;

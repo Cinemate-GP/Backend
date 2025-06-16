@@ -1,4 +1,5 @@
-﻿using Cinemate.Core.Contracts.User_Like;
+﻿using Cinemate.Core.Contracts.Common;
+using Cinemate.Core.Contracts.User_Like;
 using FluentValidation;
 using System;
 using System.Collections.Generic;
@@ -8,13 +9,14 @@ using System.Threading.Tasks;
 
 namespace Cinemate.Core.Contracts.User_Watched_Movie
 {
-    public class UserWatchedMovieValidator : AbstractValidator<UserWatchedMovieResponse>
+    public class UserWatchedMovieValidator : BaseValidator<UserWatchedMovieResponse>
     {
         public UserWatchedMovieValidator()
         {
-            RuleFor(x => x.UserId)
+            WithXssProtection(RuleFor(x => x.UserId)
                 .NotEmpty()
-                .Length(3, 100);
+                .Length(3, 100));
+
             RuleFor(x => x.TMDBId)
                 .NotEmpty()
                 .GreaterThan(0);

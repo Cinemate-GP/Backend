@@ -1,4 +1,5 @@
-﻿using FluentValidation;
+﻿using Cinemate.Core.Contracts.Common;
+using FluentValidation;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -7,13 +8,13 @@ using System.Threading.Tasks;
 
 namespace Cinemate.Core.Contracts.Authentication
 {
-    public class ResendConfirmationEmailRequestValidatior : AbstractValidator<ResendConfirmationEmailRequest>
+    public class ResendConfirmationEmailRequestValidatior : BaseValidator<ResendConfirmationEmailRequest>
     {
         public ResendConfirmationEmailRequestValidatior()
         {
-            RuleFor(x => x.Email)
+            WithXssProtection(RuleFor(x => x.Email)
                 .NotEmpty()
-                .EmailAddress();
+                .EmailAddress());
         }
     }
 }

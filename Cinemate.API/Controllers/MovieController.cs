@@ -49,7 +49,7 @@ namespace Cinemate.API.Controllers
 			return Ok(result);
 		}		
 		[Authorize]
-		[HttpPost("recommender")]
+		[HttpGet("recommender")]
 		public async Task<IActionResult> GetMovieRecommnder(CancellationToken cancellationToken)
 		{
 			var result = await _movieService.GetRecommendedMoviesAsync(User.GetUserName()!,cancellationToken);

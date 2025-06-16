@@ -1,5 +1,6 @@
 ﻿using Cinemate.Core.Contracts.Follow;
 using Cinemate.Core.Extensions;
+using Cinemate.Core.Filters;
 using Cinemate.Core.Service_Contract;
 using Microsoft.AspNetCore.Authorization;
 using Cinemate.Repository.Abstractions;
@@ -28,20 +29,21 @@ namespace Cinemate.API.Controllers
         {
             var result = await _userFollowMovieService.DeleteUserFollowAsync(request, cancellationToken);
             return result.IsSuccess ? Ok(result) : NotFound(result);
-        }
-		[HttpGet("get-all-followers/{userName}")]
+        }		[HttpGet("get-all-followers/{userName}")]
+		[XssProtection]
 		public async Task<IActionResult> GetAllUserFollowers([FromRoute] string userName, CancellationToken cancellationToken)
 		{
 			var result = await _userFollowMovieService.GetAllFollowers(userName, cancellationToken);
 			return result.IsSuccess ? Ok(result.Value) : result.ToProblem();
-		}
-		[HttpGet("get-all-following/{userName}")]
+		}		[HttpGet("get-all-following/{userName}")]
+		[XssProtection]
 		public async Task<IActionResult> GetAllUserFollowing([FromRoute] string userName, CancellationToken cancellationToken)
 		{
 			var result = await _userFollowMovieService.GetAllFollowing(userName, cancellationToken);
 			return result.IsSuccess ? Ok(result.Value) : result.ToProblem();
 		}
 		[HttpGet("follow-details/{followName}")]
+		[XssProtection]
 		public async Task<IActionResult> GetFollowDetails([FromRoute] string followName, CancellationToken cancellationToken)
 		{
 			var result = await _userFollowMovieService.GetFollowersDetailsAsync(User.GetUserId()!, followName, cancellationToken);

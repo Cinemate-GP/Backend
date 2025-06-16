@@ -29,6 +29,7 @@ namespace Cinemate.Core.Contracts.Movies
 		bool IsLiked,
 		bool IsInWatchList,
 		bool IsWatched,
+		string MovieReviewType,
 		IEnumerable<ActorMovieResponse> Actors,
 		IEnumerable<GenresDetails> GenresDetails,
 		IEnumerable<MovieReviewResponse> MovieReviews
