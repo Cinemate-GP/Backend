@@ -43,7 +43,7 @@ namespace Cinemate.Service.Services.Profile
 		private readonly ApplicationDbContext _context;
 		private readonly IUnitOfWork _unitOfWork;
 		private readonly HttpClient _httpClient;
-		private const string MLMovieRecommenderUrl = "http://cinemate-rs-api.hzgxh0ashwhbgkg5.italynorth.azurecontainer.io:5000/api/v1/user/test";
+		private const string MLMovieRecommenderUrl = "http://cinemate-rs-api.ebe5hqc4gueefzed.italynorth.azurecontainer.io:5000/api/v1/user/test";
 
 		public ProfileService(UserManager<ApplicationUser> userManager, SignInManager<ApplicationUser> signInManager, IFileService fileService, IHttpContextAccessor httpContextAccessor, IUserLikeMovieService userLikeMovieService, IUserRateMovieService userRateMovieService, IUserReviewMovieService userReviewMovieService, IUserWatchedMovieService userWatchedMovieService, IUserWatchlistMovieService userWatchlistService, ApplicationDbContext context, IUnitOfWork unitOfWork, HttpClient httpClient)
         {

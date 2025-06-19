@@ -6,13 +6,14 @@ using System.Threading.Tasks;
 
 namespace Cinemate.Core.Contracts.Movies
 {
-	public record MovieRecommendationResponse
-	(
-		int TMDBId,
-		string? Title,
-		string? PosterPath,
-		string? IMDBRating,
-		string? MPA,
-		double Score
-	);
+    public record MovieRecommendationResponse
+    (
+        int TMDBId,
+        string? Title,
+        string? PosterPath,
+        string? IMDBRating,
+        string? MPA,
+        double Score,
+        int? ReleaseYear = null
+    );
 }

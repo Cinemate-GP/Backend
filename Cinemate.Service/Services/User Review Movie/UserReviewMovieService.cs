@@ -25,7 +25,7 @@ namespace Cinemate.Service.Services.User_Review_Movie
         private readonly IUnitOfWork _unitOfWork;
         private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly HttpClient _httpClient;
-		private const string SentimentAnalysisUrl = "http://cinemate-sa-api.h6bkc5a2dveqedfm.italynorth.azurecontainer.io:5000/review/sentiment";
+		private const string SentimentAnalysisUrl = "http://cinemate-sa-api.bxe5hecrcgc0hde7.italynorth.azurecontainer.io:5000/review/sentiment";
 		public UserReviewMovieService(IUnitOfWork unitOfWork, IHttpContextAccessor httpContextAccessor, HttpClient httpClient)
         {
             _unitOfWork = unitOfWork;
