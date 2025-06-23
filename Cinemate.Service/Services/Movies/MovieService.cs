@@ -38,8 +38,8 @@ namespace Cinemate.Service.Services.Movies
 		private const string TmdbBaseUrl = "https://api.themoviedb.org/3";
 		private const string OmdbApiKey = "226e9b2d";
 		private const string OmdbBaseUrl = "https://www.omdbapi.com";
-		private const string MovieRecommenderUrl = "http://cinemate-rs-api.hzgxh0ashwhbgkg5.italynorth.azurecontainer.io:5000/api/v1/user/recommend";
-		private const string MovieSimilarityUrl = "http://cinemate-rs-api.hzgxh0ashwhbgkg5.italynorth.azurecontainer.io:5000/api/v1/movie/similar";
+		private const string MovieRecommenderUrl = "http://cinemate-rs-api.ebe5hqc4gueefzed.italynorth.azurecontainer.io:5000/api/v1/user/recommend";
+		private const string MovieSimilarityUrl = "http://cinemate-rs-api.ebe5hqc4gueefzed.italynorth.azurecontainer.io:5000/api/v1/movie/similar";
 
 		public MovieService(IUnitOfWork unitOfWork,
 			IMapper mapper,
@@ -231,26 +231,45 @@ namespace Cinemate.Service.Services.Movies
 				return Enumerable.Empty<MovieTrendingResponse>();
 			}
 		}
-		public async Task<Result<IEnumerable<MovieRecommendationResponse>>> GetRecommendedMoviesAsync(string userName, CancellationToken cancellationToken)
-		{
-			var user = await _userManager.FindByNameAsync(userName);
-			if (user is null)
-				return Result.Failure<IEnumerable<MovieRecommendationResponse>>(UserErrors.Unauthorized);
+        public async Task<Result<IEnumerable<MovieRecommendationResponse>>> GetRecommendedMoviesAsync(string userName, CancellationToken cancellationToken)
+        {
+            var user = await _userManager.FindByNameAsync(userName);
+            if (user is null)
+                return Result.Failure<IEnumerable<MovieRecommendationResponse>>(UserErrors.Unauthorized);
 
-			var request = new MovieRecommendationRequest
-			(
-				user.Id,
-				DateTime.UtcNow.Year - user.BirthDay.Year
-			);
+            var request = new MovieRecommendationRequest
+            (
+                user.Id,
+                DateTime.UtcNow.Year - user.BirthDay.Year
+            );
 
-			var recommendationResult = await GetMovieRecommendationsAsync(request, cancellationToken);
+            var recommendationResult = await GetMovieRecommendationsAsync(request, cancellationToken);
 
-			if (recommendationResult == null)
-				return Result.Failure<IEnumerable<MovieRecommendationResponse>>(MovieErrors.RecommandationNotFound);
+            if (recommendationResult == null)
+                return Result.Failure<IEnumerable<MovieRecommendationResponse>>(MovieErrors.RecommandationNotFound);
 
-			return Result.Success(recommendationResult);
-		}
-		public async Task<Result<IEnumerable<MoviesTopTenResponse>>> GetMovieSimilarityAsync(int tmdbId, CancellationToken cancellationToken)
+            // Calculate the current year for normalizing release years
+            int currentYear = DateTime.UtcNow.Year;
+
+            // Sort recommendations prioritizing newer movies while still respecting ML model scores
+            var sortedRecommendations = recommendationResult
+                .OrderByDescending(m => {
+                    // Calculate a normalized release year score (0 to 1)
+                    double yearScore = 0;
+                    if (m.ReleaseYear.HasValue)
+                    {
+                        // Normalize release year to a 0-1 scale, with newer movies closer to 1
+                        yearScore = Math.Min(1.0, Math.Max(0, (double)(m.ReleaseYear.Value - (currentYear - 10)) / 10));
+                    }
+
+                    // Calculate combined score (70% ML recommendation, 30% release year recency)
+                    return (m.Score * 0.7) + (yearScore * 0.3);
+                })
+                .ToList();
+
+            return Result.Success<IEnumerable<MovieRecommendationResponse>>(sortedRecommendations);
+        }
+        public async Task<Result<IEnumerable<MoviesTopTenResponse>>> GetMovieSimilarityAsync(int tmdbId, CancellationToken cancellationToken)
 		{
 			var similarityResult = await GetMovieSimilarityFromApiAsync(tmdbId, cancellationToken);
 
@@ -1596,76 +1615,77 @@ namespace Cinemate.Service.Services.Movies
 			{ "o.Al.", "Unrated" }
 		};
 		private async Task<IEnumerable<MovieRecommendationResponse>?> GetMovieRecommendationsAsync(MovieRecommendationRequest request, CancellationToken cancellationToken)
-		{
-			try
-			{
-				var requestBody = new MovieRecommendationApiRequest { UserId = request.UserId, Age = request.Age };
-				var jsonContent = JsonSerializer.Serialize(requestBody);
-				var content = new StringContent(jsonContent, Encoding.UTF8, "application/json");
-				var response = await _httpClient.PostAsync(MovieRecommenderUrl, content, cancellationToken);
-				var responseJson = await response.Content.ReadAsStringAsync(cancellationToken);
+{
+    try
+    {
+        var requestBody = new MovieRecommendationApiRequest { UserId = request.UserId, Age = request.Age };
+        var jsonContent = JsonSerializer.Serialize(requestBody);
+        var content = new StringContent(jsonContent, Encoding.UTF8, "application/json");
+        var response = await _httpClient.PostAsync(MovieRecommenderUrl, content, cancellationToken);
+        var responseJson = await response.Content.ReadAsStringAsync(cancellationToken);
 
-				if (response.IsSuccessStatusCode)
-				{
-					var options = new JsonSerializerOptions
-					{
-						PropertyNameCaseInsensitive = true,
-						AllowTrailingCommas = true,
-						ReadCommentHandling = JsonCommentHandling.Skip
-					};
+        if (response.IsSuccessStatusCode)
+        {
+            var options = new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true,
+                AllowTrailingCommas = true,
+                ReadCommentHandling = JsonCommentHandling.Skip
+            };
 
-					var apiResponse = JsonSerializer.Deserialize<MLApiResponse>(responseJson, options)
-						?? throw new JsonException($"Deserialization failed. Response: {responseJson}");
+            var apiResponse = JsonSerializer.Deserialize<MLApiResponse>(responseJson, options)
+                ?? throw new JsonException($"Deserialization failed. Response: {responseJson}");
 
-					if (apiResponse.Status != "success" || apiResponse.Data?.Recommendations == null)
-						return null;
+            if (apiResponse.Status != "success" || apiResponse.Data?.Recommendations == null)
+                return null;
 
-					var recommendationData = new List<(int TmdbId, double Score)>();
-					foreach (var recommendation in apiResponse.Data.Recommendations)
-					{
-						if (recommendation.Length >= 2 &&
-							recommendation[0] is JsonElement tmdbIdElement &&
-							recommendation[1] is JsonElement scoreElement)
-						{
-							if (tmdbIdElement.TryGetInt32(out int tmdbId) &&
-								scoreElement.TryGetDouble(out double score))
-							{
-								recommendationData.Add((tmdbId, score));
-							}
-						}
-					}
-					var tmdbIds = recommendationData.Select(r => r.TmdbId).ToList();
-					var movies = await _context.Movies
-						.Where(m => tmdbIds.Contains(m.TMDBId) && !m.IsDeleted)
-						.ToListAsync(cancellationToken);
+            var recommendationData = new List<(int TmdbId, double Score)>();
+            foreach (var recommendation in apiResponse.Data.Recommendations)
+            {
+                if (recommendation.Length >= 2 &&
+                    recommendation[0] is JsonElement tmdbIdElement &&
+                    recommendation[1] is JsonElement scoreElement)
+                {
+                    if (tmdbIdElement.TryGetInt32(out int tmdbId) &&
+                        scoreElement.TryGetDouble(out double score))
+                    {
+                        recommendationData.Add((tmdbId, score));
+                    }
+                }
+            }
+            var tmdbIds = recommendationData.Select(r => r.TmdbId).ToList();
+            var movies = await _context.Movies
+                .Where(m => tmdbIds.Contains(m.TMDBId) && !m.IsDeleted)
+                .ToListAsync(cancellationToken);
 
-					var recommendations = new List<MovieRecommendationResponse>();
-					foreach (var (tmdbId, score) in recommendationData)
-					{
-						var movie = movies.FirstOrDefault(m => m.TMDBId == tmdbId);
-						if (movie != null)
-						{
-							recommendations.Add(new MovieRecommendationResponse(
-								movie.TMDBId,
-								movie.Title,
-								movie.PosterPath,
-								movie.IMDBRating,
-								movie.MPA,
-								score
-							));
-						}
-					}
-					return recommendations;
-				}
-				else
-					throw new HttpRequestException($"API request failed with status {response.StatusCode}");
-			}
-			catch (Exception ex)
-			{
-				_logger?.LogError(ex, "Error getting movie recommendations from API");
-				return null;
-			}
-		}
+            var recommendations = new List<MovieRecommendationResponse>();
+            foreach (var (tmdbId, score) in recommendationData)
+            {
+                var movie = movies.FirstOrDefault(m => m.TMDBId == tmdbId);
+                if (movie != null)
+                {
+                    recommendations.Add(new MovieRecommendationResponse(
+                        movie.TMDBId,
+                        movie.Title,
+                        movie.PosterPath,
+                        movie.IMDBRating,
+                        movie.MPA,
+                        score,
+                        movie.ReleaseDate?.Year
+                    ));
+                }
+            }
+            return recommendations;
+        }
+        else
+            throw new HttpRequestException($"API request failed with status {response.StatusCode}");
+    }
+    catch (Exception ex)
+    {
+        _logger?.LogError(ex, "Error getting movie recommendations from API");
+        return null;
+    }
+}
 		private async Task<IEnumerable<MovieSimilarityApiResponse>?> GetMovieSimilarityFromApiAsync(int tmdbId, CancellationToken cancellationToken)
 		{
 			try
